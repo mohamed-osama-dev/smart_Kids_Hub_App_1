@@ -1,98 +1,89 @@
 import 'package:flutter/material.dart';
+import '../utils/app_colors.dart';
 
 class ThemedTextField extends StatefulWidget {
   const ThemedTextField({
     super.key,
     this.controller,
-    this.keyboardType = TextInputType.visiblePassword,
-    this.prefixWidget,
+    this.keyboardType = TextInputType.text,
     this.prefixText,
+    this.prefixIcon,
     required this.hintText,
-    this.prefixIconPath,
     this.validator,
     this.isPassword = false,
     this.onChanged,
     this.onSaved,
     this.maxLines = 1,
-    this.color,
+    this.enabled = true,
+    this.readOnly = false,
+    this.onTap,
+    this.focusNode,
+    required InputDecoration decoration,
   });
 
   final TextEditingController? controller;
   final String hintText;
-  final TextInputType? keyboardType;
-  final Widget? prefixWidget;
-  final String? prefixIconPath;
+  final TextInputType keyboardType;
+  final String? prefixText;
+  final Widget? prefixIcon;
   final String? Function(String?)? validator;
   final void Function(String)? onChanged;
   final void Function(String?)? onSaved;
-
   final bool isPassword;
   final int maxLines;
-  final Color? color;
-
-  final String? prefixText;
+  final bool enabled;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final FocusNode? focusNode;
 
   @override
   State<ThemedTextField> createState() => _ThemedTextFieldState();
 }
 
 class _ThemedTextFieldState extends State<ThemedTextField> {
-  late bool isObscure = widget.isPassword;
+  late bool _isObscure = widget.isPassword;
 
   @override
   Widget build(BuildContext context) {
-    TextTheme textTheme = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return TextFormField(
-      style: textTheme.titleMedium,
-      cursorColor: Colors.amber,
+      focusNode: widget.focusNode,
+      enabled: widget.enabled,
+      readOnly: widget.readOnly,
+      onTap: widget.onTap,
+      style: textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
+      cursorColor: AppColors.primary,
       validator: widget.validator,
       controller: widget.controller,
       onChanged: widget.onChanged,
       onSaved: widget.onSaved,
-      obscureText: isObscure,
+      obscureText: _isObscure,
       maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       decoration: InputDecoration(
-        prefix: widget.prefixWidget,
-        prefixText: widget.prefixText,
-
         hintText: widget.hintText,
-
-        contentPadding: const EdgeInsetsDirectional.only(
-          top: 16,
-          bottom: 16,
-          start: 16,
+        prefixText: widget.prefixText,
+        prefixStyle: textTheme.titleMedium?.copyWith(
+          color: AppColors.textPrimary,
         ),
-        prefixIcon: widget.prefixIconPath != null
-            ? Padding(
-                padding: const EdgeInsetsDirectional.only(start: 19, end: 10),
-                // child: SvgPicture.asset(
-                //   widget.prefixIconPath!,
-                //   colorFilter: ColorFilter.mode(
-                //     widget.color == null ? AppTheme.white : widget.color!,
-                //     BlendMode.srcIn,
-                //   ),
-                // ),
-              )
-            : null,
+        prefixIcon: widget.prefixIcon,
         suffixIcon: widget.isPassword
             ? IconButton(
                 onPressed: () {
                   setState(() {
-                    isObscure = !isObscure;
+                    _isObscure = !_isObscure;
                   });
                 },
                 icon: Icon(
-                  isObscure
+                  _isObscure
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: Colors.amber,
+                  color: AppColors.textSecondary,
                 ),
               )
             : null,
-        suffixIconColor: Colors.amber,
       ),
     );
   }
