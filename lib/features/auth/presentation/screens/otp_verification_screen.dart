@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/parent.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 import '../../../../utils/app_routes.dart';
 import '../widgets/step_progress_indicator.dart';
 import '../../../../widgets/custom_elevated_button.dart';
+import '../cubit/auth_cubit.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
   final Parent parent;
@@ -18,11 +20,11 @@ class OTPVerificationScreen extends StatefulWidget {
 
 class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final List<TextEditingController> _otpControllers = List.generate(
-    4,
+    6,
     (index) => TextEditingController(),
   );
 
-  final List<FocusNode> _focusNodes = List.generate(4, (index) => FocusNode());
+  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
 
   bool _isVerifying = false;
 
@@ -38,7 +40,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   }
 
   void _onOTPCChanged(int index, String value) {
-    if (value.length == 1 && index < 3) {
+    if (value.length == 1 && index < 5) {
       _focusNodes[index + 1].requestFocus();
     }
   }
@@ -47,30 +49,41 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     return _otpControllers.map((c) => c.text).join();
   }
 
-  void _handleVerify() {
+  void _handleVerify() async {
     final otp = _getOTP();
-    if (otp.length == 4) {
+    if (otp.length == 6) {
       setState(() => _isVerifying = true);
-
-      Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          setState(() => _isVerifying = false);
-          Navigator.of(
-            context,
-          ).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
-        }
-      });
+      final cubit = context.read<AuthCubit>();
+      final success = await cubit.verifyOtp(verifyCode: otp);
+      if (!mounted) return;
+      setState(() => _isVerifying = false);
+      if (success) {
+        Navigator.of(context).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(cubit.errorMessage ?? 'رمز التحقق غير صحيح')),
+        );
+      }
     }
   }
 
-  void _handleResendOTP() {
-    // TODO: Resend OTP logic
+  void _handleResendOTP() async {
+    final cubit = context.read<AuthCubit>();
+    final success = await cubit.resendCode();
+    if (!mounted) return;
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(cubit.errorMessage ?? 'تعذر إعادة إرسال الرمز')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
     final isKeyboardVisible = keyboardHeight > 0;
+    final otpBoxWidth = isKeyboardVisible ? 44.0 : 46.0;
+    final otpBoxHeight = isKeyboardVisible ? 50.0 : 52.0;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -156,28 +169,27 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         Text('رمز التأكيد', style: AppStyles.bold16Black),
                         SizedBox(height: isKeyboardVisible ? 8 : 16),
                         // OTP input fields
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            4,
-                            (index) => Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                              ),
-                              child: SizedBox(
-                                width: 56,
-                                height: 56,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: List.generate(
+                              6,
+                              (index) => SizedBox(
+                                width: otpBoxWidth,
+                                height: otpBoxHeight,
                                 child: TextField(
                                   controller: _otpControllers[index],
                                   focusNode: _focusNodes[index],
-
                                   keyboardType: TextInputType.visiblePassword,
                                   textAlign: TextAlign.center,
                                   maxLength: 1,
                                   inputFormatters: [
                                     FilteringTextInputFormatter.digitsOnly,
                                   ],
-                                  style: AppStyles.bold20Black,
+                                  style: AppStyles.bold20Black.copyWith(
+                                    fontSize: 18,
+                                  ),
                                   decoration: InputDecoration(
                                     counterText: '',
                                     filled: true,
@@ -215,14 +227,17 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         // Verify button
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: CustomElevatedButton(
-                            onPressed: _isVerifying ? () {} : _handleVerify,
-                            text: _isVerifying
-                                ? 'جاري التحقق...'
-                                : 'تحقق من الرمز',
-                            backgroundColor: _isVerifying
-                                ? AppColors.textHint
-                                : AppColors.primary,
+                          child: Consumer<AuthCubit>(
+                            builder: (context, cubit, _) {
+                              final isBusy = _isVerifying || cubit.isLoading;
+                              return CustomElevatedButton(
+                                onPressed: isBusy ? () {} : _handleVerify,
+                                text: isBusy ? 'جاري التحقق...' : 'تحقق من الرمز',
+                                backgroundColor: isBusy
+                                    ? AppColors.textHint
+                                    : AppColors.primary,
+                              );
+                            },
                           ),
                         ),
                         SizedBox(height: isKeyboardVisible ? 8 : 16),
@@ -236,15 +251,21 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             ),
                           ),
                           SizedBox(height: 16),
-                          TextButton(
-                            onPressed: _handleResendOTP,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(0, 44),
-                            ),
-                            child: Text(
-                              'لم تستقبل الرمز؟ إعادة إرسال',
-                              style: AppStyles.semi14Primary,
-                            ),
+                          Consumer<AuthCubit>(
+                            builder: (context, cubit, _) {
+                              return TextButton(
+                                onPressed: cubit.isLoading ? null : _handleResendOTP,
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(0, 44),
+                                ),
+                                child: Text(
+                                  cubit.isLoading
+                                      ? 'جاري إعادة الإرسال...'
+                                      : 'لم تستقبل الرمز؟ إعادة إرسال',
+                                  style: AppStyles.semi14Primary,
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(height: 24),
                         ],

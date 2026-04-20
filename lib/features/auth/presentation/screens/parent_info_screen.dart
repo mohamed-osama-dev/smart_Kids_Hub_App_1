@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/parent.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
@@ -6,6 +7,7 @@ import '../../../../utils/app_routes.dart';
 import '../widgets/step_progress_indicator.dart';
 import '../../../../widgets/custom_elevated_button.dart';
 import '../../../../widgets/custom_text_form_field.dart';
+import '../cubit/auth_cubit.dart';
 
 class ParentInfoScreen extends StatefulWidget {
   const ParentInfoScreen({super.key});
@@ -30,17 +32,31 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
     super.dispose();
   }
 
-  void _handleNext() {
+  void _handleNext() async {
     if (_formKey.currentState!.validate()) {
-      final parent = Parent(
-        fullName: _nameController.text,
-        phone: _phoneController.text,
+      final cubit = context.read<AuthCubit>();
+      final success = await cubit.registerParent(
+        fullName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
         password: _passwordController.text,
+        confirmPassword: _confirmPasswordController.text,
       );
+      if (!mounted) return;
+      if (success) {
+        final parent = Parent(
+          fullName: _nameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+        );
 
-      Navigator.of(
-        context,
-      ).pushNamed(AppRoutes.otpVerification, arguments: parent);
+        Navigator.of(
+          context,
+        ).pushNamed(AppRoutes.otpVerification, arguments: parent);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(cubit.errorMessage ?? 'حدث خطأ، حاول مجدداً')),
+        );
+      }
     }
   }
 
@@ -128,14 +144,22 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
                                 const SizedBox(height: 8),
                                 ThemedTextField(
                                   controller: _phoneController,
-                                  hintText: '012345678',
+                                  hintText: '1012345678',
                                   keyboardType: TextInputType.phone,
                                   prefixText: '+20 ',
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'رقم الهاتف مطلوب';
                                     }
-                                    if (value.length < 10) {
+                                    final digits = value.replaceAll(
+                                      RegExp(r'\D'),
+                                      '',
+                                    );
+                                    final validLength =
+                                        digits.length == 10 ||
+                                        (digits.length == 11 &&
+                                            digits.startsWith('0'));
+                                    if (!validLength) {
                                       return 'رقم الهاتف غير صحيح';
                                     }
                                     return null;
@@ -184,16 +208,24 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 // Next button
-                                CustomElevatedButton(
-                                  onPressed: _handleNext,
-                                  text: 'التالي',
-                                  backgroundColor: AppColors.primary,
-                                  hasIcon: true,
-                                  iconWidget: const Icon(
-                                    Icons.arrow_back_ios,
-                                    color: AppColors.whiteColor,
-                                    size: 20,
-                                  ),
+                                Consumer<AuthCubit>(
+                                  builder: (context, cubit, _) {
+                                    return CustomElevatedButton(
+                                      onPressed: cubit.isLoading
+                                          ? () {}
+                                          : _handleNext,
+                                      text: cubit.isLoading ? 'جاري المتابعة...' : 'التالي',
+                                      backgroundColor: cubit.isLoading
+                                          ? AppColors.textHint
+                                          : AppColors.primary,
+                                      hasIcon: true,
+                                      iconWidget: const Icon(
+                                        Icons.arrow_back_ios,
+                                        color: AppColors.whiteColor,
+                                        size: 20,
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),

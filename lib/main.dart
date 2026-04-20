@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
 import 'features/auth/domain/models/parent.dart';
+import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/screens/screens.dart';
 import 'features/meals/data/data.dart';
 import 'features/meals/domain/domain.dart';
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthCubit()),
         ChangeNotifierProvider(
           create: (_) => MealsCubit(
             getAiMealSuggestions: getAiMealSuggestions,

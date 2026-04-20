@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 import '../../../../utils/app_routes.dart';
 import '../../../../widgets/custom_elevated_button.dart';
 import '../../../../widgets/custom_text_form_field.dart';
+import '../cubit/auth_cubit.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +16,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _phoneController = TextEditingController(text: '012345678');
+  final _phoneController = TextEditingController(text: '1012345678');
   final _passwordController = TextEditingController(text: 'password123');
 
   @override
@@ -24,9 +26,21 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.parentInfo);
+      final cubit = context.read<AuthCubit>();
+      final success = await cubit.login(
+        phoneNumber: _phoneController.text.trim(),
+        password: _passwordController.text,
+      );
+      if (!mounted) return;
+      if (success) {
+        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(cubit.errorMessage ?? 'حدث خطأ، حاول مجدداً')),
+        );
+      }
     }
   }
 
@@ -124,6 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                           if (value == null || value.isEmpty) {
                                             return 'رقم الهاتف مطلوب';
                                           }
+                                          final digits = value.replaceAll(
+                                            RegExp(r'\D'),
+                                            '',
+                                          );
+                                          final validLength =
+                                              digits.length == 10 ||
+                                              (digits.length == 11 &&
+                                                  digits.startsWith('0'));
+                                          if (!validLength) {
+                                            return 'رقم الهاتف غير صحيح';
+                                          }
                                           return null;
                                         },
                                         decoration: const InputDecoration(),
@@ -173,10 +198,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                         height: isKeyboardVisible ? 12 : 16,
                                       ),
                                       // Login button
-                                      CustomElevatedButton(
-                                        onPressed: _handleLogin,
-                                        text: 'تسجيل الدخول',
-                                        backgroundColor: AppColors.primary,
+                                      Consumer<AuthCubit>(
+                                        builder: (context, cubit, _) {
+                                          return CustomElevatedButton(
+                                            onPressed: cubit.isLoading
+                                                ? () {}
+                                                : _handleLogin,
+                                            text: cubit.isLoading
+                                                ? 'جاري تسجيل الدخول...'
+                                                : 'تسجيل الدخول',
+                                            backgroundColor: cubit.isLoading
+                                                ? AppColors.textHint
+                                                : AppColors.primary,
+                                          );
+                                        },
                                       ),
                                       SizedBox(
                                         height: isKeyboardVisible ? 8 : 16,

@@ -6,6 +6,7 @@ class Child {
   final DateTime birthDate;
   final Gender gender;
   final double? height;
+  final double? weight;
   final List<String> healthConditions;
   final String additionalNotes;
   final bool hasNoChronicDiseases;
@@ -16,6 +17,7 @@ class Child {
     required this.birthDate,
     required this.gender,
     this.height,
+    this.weight,
     this.healthConditions = const [],
     this.additionalNotes = '',
     this.hasNoChronicDiseases = false,
@@ -56,6 +58,7 @@ class Child {
     DateTime? birthDate,
     Gender? gender,
     double? height,
+    double? weight,
     List<String>? healthConditions,
     String? additionalNotes,
     bool? hasNoChronicDiseases,
@@ -66,6 +69,7 @@ class Child {
       birthDate: birthDate ?? this.birthDate,
       gender: gender ?? this.gender,
       height: height ?? this.height,
+      weight: weight ?? this.weight,
       healthConditions: healthConditions ?? this.healthConditions,
       additionalNotes: additionalNotes ?? this.additionalNotes,
       hasNoChronicDiseases: hasNoChronicDiseases ?? this.hasNoChronicDiseases,

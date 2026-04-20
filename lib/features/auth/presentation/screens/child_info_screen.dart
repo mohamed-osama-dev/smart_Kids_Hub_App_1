@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/models/child.dart';
 import '../../domain/models/parent.dart';
+import '../cubit/auth_cubit.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 import '../../../../utils/app_routes.dart';
@@ -27,6 +29,7 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
       birthDate: DateTime(2022, 3, 15),
       gender: Gender.male,
       height: 105,
+      weight: 20,
       healthConditions: const [],
       hasNoChronicDiseases: false,
     ),
@@ -40,6 +43,7 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
           birthDate: DateTime(2022, 1, 1),
           gender: Gender.male,
           height: 0.0,
+          weight: 0.0,
           healthConditions: const [],
           hasNoChronicDiseases: false,
         ),
@@ -66,16 +70,27 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
       if (child.name.isEmpty || child.height == null || child.height == 0) {
         return false;
       }
+      if (child.weight == null || child.weight == 0) {
+        return false;
+      }
     }
     return true;
   }
 
-  void _handleNext() {
+  void _handleNext() async {
     if (_canProceed()) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        AppRoutes.home,
-        (route) => false,
-      );
+      final cubit = context.read<AuthCubit>();
+      final success = await cubit.addChildren(_children);
+      if (!mounted) return;
+      if (success) {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(cubit.errorMessage ?? 'حدث خطأ أثناء إضافة الأطفال')),
+        );
+      }
     }
   }
 
@@ -178,12 +193,19 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
                               ),
                               const SizedBox(height: 24),
                               // Next button
-                              CustomElevatedButton(
-                                onPressed: _canProceed() ? _handleNext : () {},
-                                text: 'التالي: تأكيد البيانات',
-                                backgroundColor: _canProceed()
-                                    ? AppColors.primary
-                                    : AppColors.textHint.withOpacity(0.3),
+                              Consumer<AuthCubit>(
+                                builder: (context, cubit, _) {
+                                  final canSubmit = _canProceed() && !cubit.isLoading;
+                                  return CustomElevatedButton(
+                                    onPressed: canSubmit ? _handleNext : () {},
+                                    text: cubit.isLoading
+                                        ? 'جاري الحفظ...'
+                                        : 'التالي: تأكيد البيانات',
+                                    backgroundColor: canSubmit
+                                        ? AppColors.primary
+                                        : AppColors.textHint.withOpacity(0.3),
+                                  );
+                                },
                               ),
                             ],
                           ),

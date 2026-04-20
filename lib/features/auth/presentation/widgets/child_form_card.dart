@@ -30,6 +30,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
   final _nameController = TextEditingController();
   final _birthDateController = TextEditingController();
   final _heightController = TextEditingController();
+  final _weightController = TextEditingController();
   final _notesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
@@ -51,6 +52,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
           DateFormat('MM/dd/yyyy').format(widget.child.birthDate);
     }
     _heightController.text = widget.child.height?.toString() ?? '';
+    _weightController.text = widget.child.weight?.toString() ?? '';
     _notesController.text = widget.child.additionalNotes;
   }
 
@@ -63,6 +65,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
     if (widget.child.height?.toString() != _heightController.text) {
       _heightController.text = widget.child.height?.toString() ?? '';
     }
+    if (widget.child.weight?.toString() != _weightController.text) {
+      _weightController.text = widget.child.weight?.toString() ?? '';
+    }
   }
 
   @override
@@ -70,6 +75,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
     _nameController.dispose();
     _birthDateController.dispose();
     _heightController.dispose();
+    _weightController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -79,6 +85,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
     DateTime? birthDate,
     Gender? gender,
     double? height,
+    double? weight,
     List<String>? healthConditions,
     String? additionalNotes,
     bool? hasNoChronicDiseases,
@@ -88,6 +95,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
       birthDate: birthDate ?? widget.child.birthDate,
       gender: gender ?? widget.child.gender,
       height: height ?? widget.child.height,
+      weight: weight ?? widget.child.weight,
       healthConditions: healthConditions ?? widget.child.healthConditions,
       additionalNotes: additionalNotes ?? widget.child.additionalNotes,
       hasNoChronicDiseases: hasNoChronicDiseases ?? widget.child.hasNoChronicDiseases,
@@ -284,7 +292,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _heightController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: InputDecoration(
                     hintText: '0.0',
                     prefixIcon: const Icon(Icons.straighten, size: 20),
@@ -298,6 +308,24 @@ class _ChildFormCardState extends State<ChildFormCard> {
                 Text(
                   'آخر طول تم قياسه',
                   style: AppStyles.regular12Grey,
+                ),
+                const SizedBox(height: 16),
+                // Weight
+                _buildFieldLabel('الوزن (كجم) *'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _weightController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.0',
+                    prefixIcon: const Icon(Icons.monitor_weight_outlined, size: 20),
+                  ),
+                  onChanged: (value) {
+                    final weight = double.tryParse(value);
+                    _updateChild(weight: weight);
+                  },
                 ),
                 const SizedBox(height: 24),
                 // Health Conditions Section
