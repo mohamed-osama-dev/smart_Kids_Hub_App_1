@@ -9,6 +9,7 @@ import 'features/meals/data/data.dart';
 import 'features/meals/domain/domain.dart';
 import 'features/meals/presentation/cubit/cubit.dart';
 import 'features/meals/presentation/screens/screens.dart';
+import 'features/growth/presentation/screens/screens.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_routes.dart';
 import 'utils/app_styles.dart';
@@ -53,6 +54,7 @@ class MyApp extends StatelessWidget {
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.home: (context) => const HomePage(),
+          AppRoutes.measurement: (context) => const MeasurementScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.parentInfo: (context) => const ParentInfoScreen(),
         },
@@ -233,7 +235,7 @@ class _HomeTab extends StatelessWidget {
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () {
-                              // TODO: replace with real API call — open measurement form
+                              Navigator.pushNamed(context, AppRoutes.measurement);
                             },
                             icon: const Icon(Icons.add, size: 18),
                             label: const Text('إضافة قياس جديد'),
