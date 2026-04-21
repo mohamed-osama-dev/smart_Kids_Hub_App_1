@@ -75,4 +75,20 @@ class Child {
       hasNoChronicDiseases: hasNoChronicDiseases ?? this.hasNoChronicDiseases,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'BirthDate': birthDate.toIso8601String().split('T').first,
+      'gender': gender == Gender.male ? 'Male' : 'Female',
+      'height': height,
+      'weight': weight,
+      'healthConditions': healthConditions,
+      'additionalNotes': additionalNotes,
+      'hasNoChronicDiseases': hasNoChronicDiseases,
+    };
+  }
+
+  Map<String, dynamic> toJson() => toMap();
 }
