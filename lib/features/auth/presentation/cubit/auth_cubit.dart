@@ -43,7 +43,10 @@ class AuthCubit extends ChangeNotifier {
     }
   }
 
-  Future<bool> verifyOtp({required String verifyCode}) async {
+  Future<bool> verifyOtp({
+    required String verifyCode,
+    bool isPasswordReset = false,
+  }) async {
     if (sessionToken == null || sessionToken!.isEmpty) {
       errorMessage = 'Session token is missing';
       notifyListeners();
@@ -54,10 +57,16 @@ class AuthCubit extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
+      print('--- OTP DEBUG INFO ---');
+      print('Session Token: $sessionToken');
+      print('Cleaned OTP sent to API: "$verifyCode"');
       final data = await _repo.verifyOtp(
         sessionToken: sessionToken!,
         verifyCode: verifyCode,
       );
+      if (isPasswordReset) {
+        return true;
+      }
       final accessToken = data['accessToken']?.toString();
       final refreshToken = data['refreshToken']?.toString();
       if (accessToken == null || refreshToken == null) {
@@ -70,6 +79,10 @@ class AuthCubit extends ChangeNotifier {
       );
       sessionToken = null;
       return true;
+    } on DioException catch (e) {
+      print('OTP VERIFY ERROR: ${e.response?.data}');
+      errorMessage = _extractMessage(e);
+      return false;
     } catch (e) {
       errorMessage = _extractMessage(e);
       return false;
@@ -79,25 +92,39 @@ class AuthCubit extends ChangeNotifier {
     }
   }
 
-  Future<bool> addChildren(List<Child> children) async {
+  Future<bool> addChild(Child child) async {
     isLoading = true;
     errorMessage = null;
     notifyListeners();
     try {
-      for (final child in children) {
-        if (child.weight == null || child.height == null) {
-          throw ApiException('بيانات الطفل غير مكتملة');
-        }
-        final ageInYears = _calculateAgeInYears(child.birthDate);
-        await _repo.addChild(
-          name: child.name,
-          age: ageInYears,
-          gender: child.gender,
-          length: child.height!,
-          weight: child.weight!,
-        );
+      if (child.weight == null || child.height == null) {
+        throw ApiException('بيانات الطفل غير مكتملة');
       }
+      await _repo.addChild(
+        name: child.name,
+        birthDate: child.birthDate,
+        gender: child.gender,
+        length: child.height!,
+        weight: child.weight!,
+      );
       return true;
+    } on DioException catch (e) {
+      print('ADD CHILD ERROR: ${e.response?.data}');
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        final errors = data['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          errorMessage = errors.first.toString();
+        } else {
+          final message = data['message']?.toString();
+          errorMessage = (message != null && message.isNotEmpty)
+              ? message
+              : _extractMessage(e);
+        }
+      } else {
+        errorMessage = _extractMessage(e);
+      }
+      return false;
     } catch (e) {
       errorMessage = _extractMessage(e);
       return false;
@@ -133,6 +160,56 @@ class AuthCubit extends ChangeNotifier {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      return true;
+    } catch (e) {
+      errorMessage = _extractMessage(e);
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> forgotPassword({required String phoneNumber}) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      final normalizedPhone = _normalizeEgyptPhoneNumber(phoneNumber);
+      if (normalizedPhone == null) {
+        throw ApiException('رقم الهاتف غير صحيح');
+      }
+      sessionToken = await _repo.forgotPassword(phoneNumber: normalizedPhone);
+      return true;
+    } catch (e) {
+      errorMessage = _extractMessage(e);
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> setNewPassword({
+    required String password,
+    required String confirmPassword,
+  }) async {
+    if (sessionToken == null || sessionToken!.isEmpty) {
+      errorMessage = 'Session token is missing';
+      notifyListeners();
+      return false;
+    }
+
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+    try {
+      await _repo.setNewPassword(
+        sessionToken: sessionToken!,
+        password: password,
+        confirmPassword: confirmPassword,
+      );
+      sessionToken = null;
       return true;
     } catch (e) {
       errorMessage = _extractMessage(e);
@@ -184,16 +261,6 @@ class AuthCubit extends ChangeNotifier {
   void clearError() {
     errorMessage = null;
     notifyListeners();
-  }
-
-  int _calculateAgeInYears(DateTime birthDate) {
-    final now = DateTime.now();
-    var ageInYears = now.year - birthDate.year;
-    if (now.month < birthDate.month ||
-        (now.month == birthDate.month && now.day < birthDate.day)) {
-      ageInYears--;
-    }
-    return ageInYears;
   }
 
   String _extractMessage(Object error) {
