@@ -55,25 +55,36 @@ class MyApp extends StatelessWidget {
           AppRoutes.home: (context) => const HomePage(),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.parentInfo: (context) => const ParentInfoScreen(),
+          AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
+          AppRoutes.setNewPassword: (context) => const SetNewPasswordScreen(),
         },
         onGenerateRoute: (settings) {
           switch (settings.name) {
             case AppRoutes.otpVerification:
-              final parent = settings.arguments as Parent?;
-              if (parent != null) {
+              final args = settings.arguments;
+              if (args is OTPVerificationArgs) {
                 return MaterialPageRoute(
-                  builder: (context) => OTPVerificationScreen(parent: parent),
+                  builder: (context) => OTPVerificationScreen(
+                    parent: args.parent,
+                    phoneNumber: args.phoneNumber,
+                    isPasswordReset: args.isPasswordReset,
+                  ),
+                );
+              }
+              if (args is Parent) {
+                return MaterialPageRoute(
+                  builder: (context) => OTPVerificationScreen(
+                    parent: args,
+                    phoneNumber: args.phone,
+                  ),
                 );
               }
               break;
             case AppRoutes.childInfo:
               final parent = settings.arguments as Parent?;
-              if (parent != null) {
-                return MaterialPageRoute(
-                  builder: (context) => ChildInfoScreen(parent: parent),
-                );
-              }
-              break;
+              return MaterialPageRoute(
+                builder: (context) => ChildInfoScreen(parent: parent),
+              );
           }
           return null;
         },
@@ -130,11 +141,44 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _HomeTab extends StatelessWidget {
+class _HomeTab extends StatefulWidget {
   const _HomeTab();
 
   @override
+  State<_HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<_HomeTab> {
+  final List<_HomeChildSummary> _children = [
+    _HomeChildSummary(name: 'أحمد', ageLabel: '4 سنوات و 3 شهور'),
+    _HomeChildSummary(name: 'ليان', ageLabel: '2 سنوات و 8 شهور'),
+  ];
+
+  int _activeChildIndex = 0;
+
+  static const String _addChildMenuValue = 'add-new-child';
+
+  void _handleChildMenuSelection(String value) {
+    if (value == _addChildMenuValue) {
+      Navigator.of(context).pushNamed(AppRoutes.childInfo);
+      return;
+    }
+
+    final childIndex = int.tryParse(value);
+    if (childIndex == null ||
+        childIndex < 0 ||
+        childIndex >= _children.length ||
+        childIndex == _activeChildIndex) {
+      return;
+    }
+    setState(() {
+      _activeChildIndex = childIndex;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final activeChild = _children[_activeChildIndex];
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Directionality(
@@ -203,25 +247,69 @@ class _HomeTab extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'أحمد',
-                                        style: AppStyles.bold18White,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: AppColors.whiteColor,
-                                        size: 20,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '4 سنوات و 3 شهور',
-                                    style: AppStyles.regular14White,
-                                  ),
+                                   Row(
+                                     children: [
+                                       PopupMenuButton<String>(
+                                         onSelected: _handleChildMenuSelection,
+                                         itemBuilder: (context) {
+                                           return [
+                                             ...List.generate(
+                                               _children.length,
+                                               (index) => PopupMenuItem<String>(
+                                                 value: '$index',
+                                                 child: Row(
+                                                   children: [
+                                                     Icon(
+                                                       index == _activeChildIndex
+                                                           ? Icons.check_circle
+                                                           : Icons.person_outline,
+                                                       size: 18,
+                                                       color: index ==
+                                                               _activeChildIndex
+                                                           ? AppColors.primary
+                                                           : null,
+                                                     ),
+                                                     const SizedBox(width: 8),
+                                                     Text(_children[index].name),
+                                                   ],
+                                                 ),
+                                               ),
+                                             ),
+                                             const PopupMenuDivider(),
+                                             const PopupMenuItem<String>(
+                                               value: _addChildMenuValue,
+                                               child: Row(
+                                                 children: [
+                                                   Icon(Icons.add, size: 18),
+                                                   SizedBox(width: 8),
+                                                   Text('إضافة طفل جديد'),
+                                                 ],
+                                               ),
+                                             ),
+                                           ];
+                                         },
+                                         child: Row(
+                                           children: [
+                                             Text(
+                                               activeChild.name,
+                                               style: AppStyles.bold18White,
+                                             ),
+                                             const SizedBox(width: 4),
+                                             const Icon(
+                                               Icons.keyboard_arrow_down,
+                                               color: AppColors.whiteColor,
+                                               size: 20,
+                                             ),
+                                           ],
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                   const SizedBox(height: 2),
+                                   Text(
+                                     activeChild.ageLabel,
+                                     style: AppStyles.regular14White,
+                                   ),
                                 ],
                               ),
                             ),
@@ -467,6 +555,13 @@ class _StatCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _HomeChildSummary {
+  final String name;
+  final String ageLabel;
+
+  const _HomeChildSummary({required this.name, required this.ageLabel});
 }
 
 class _GrowthTab extends StatelessWidget {

@@ -8,6 +8,7 @@ import '../widgets/step_progress_indicator.dart';
 import '../../../../widgets/custom_elevated_button.dart';
 import '../../../../widgets/custom_text_form_field.dart';
 import '../cubit/auth_cubit.dart';
+import 'otp_verification_screen.dart';
 
 class ParentInfoScreen extends StatefulWidget {
   const ParentInfoScreen({super.key});
@@ -51,7 +52,13 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
 
         Navigator.of(
           context,
-        ).pushNamed(AppRoutes.otpVerification, arguments: parent);
+        ).pushNamed(
+          AppRoutes.otpVerification,
+          arguments: OTPVerificationArgs(
+            parent: parent,
+            phoneNumber: parent.phone,
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(cubit.errorMessage ?? 'حدث خطأ، حاول مجدداً')),

@@ -10,55 +10,55 @@ import '../../../../widgets/custom_elevated_button.dart';
 import '../cubit/auth_cubit.dart';
 
 class OTPVerificationScreen extends StatefulWidget {
-  final Parent parent;
+  final Parent? parent;
+  final String phoneNumber;
+  final bool isPasswordReset;
 
-  const OTPVerificationScreen({super.key, required this.parent});
+  const OTPVerificationScreen({
+    super.key,
+    this.parent,
+    required this.phoneNumber,
+    this.isPasswordReset = false,
+  });
 
   @override
   State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
 }
 
 class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
-  final List<TextEditingController> _otpControllers = List.generate(
-    6,
-    (index) => TextEditingController(),
-  );
-
-  final List<FocusNode> _focusNodes = List.generate(6, (index) => FocusNode());
+  final TextEditingController _otpController = TextEditingController();
 
   bool _isVerifying = false;
 
   @override
   void dispose() {
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    _otpController.dispose();
     super.dispose();
   }
 
-  void _onOTPCChanged(int index, String value) {
-    if (value.length == 1 && index < 5) {
-      _focusNodes[index + 1].requestFocus();
-    }
-  }
-
-  String _getOTP() {
-    return _otpControllers.map((c) => c.text).join();
-  }
-
   void _handleVerify() async {
-    final otp = _getOTP();
-    if (otp.length == 6) {
+    final String cleanOtp = _otpController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanOtp.length == 6) {
       setState(() => _isVerifying = true);
       final cubit = context.read<AuthCubit>();
-      final success = await cubit.verifyOtp(verifyCode: otp);
+      final success = await cubit.verifyOtp(
+        verifyCode: cleanOtp,
+        isPasswordReset: widget.isPasswordReset,
+      );
       if (!mounted) return;
       setState(() => _isVerifying = false);
       if (success) {
-        Navigator.of(context).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
+        if (widget.isPasswordReset) {
+          Navigator.of(context).pushNamed(AppRoutes.setNewPassword);
+        } else if (widget.parent != null) {
+          Navigator.of(
+            context,
+          ).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
+        } else {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(cubit.errorMessage ?? 'رمز التحقق غير صحيح')),
@@ -82,8 +82,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   Widget build(BuildContext context) {
     final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
     final isKeyboardVisible = keyboardHeight > 0;
-    final otpBoxWidth = isKeyboardVisible ? 44.0 : 46.0;
-    final otpBoxHeight = isKeyboardVisible ? 50.0 : 52.0;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -146,7 +144,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            widget.parent.phone,
+                            widget.phoneNumber,
                             style: AppStyles.bold16Primary,
                           ),
                         ),
@@ -168,56 +166,49 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         // OTP input label
                         Text('رمز التأكيد', style: AppStyles.bold16Black),
                         SizedBox(height: isKeyboardVisible ? 8 : 16),
-                        // OTP input fields
+                        // OTP input field
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: List.generate(
-                              6,
-                              (index) => SizedBox(
-                                width: otpBoxWidth,
-                                height: otpBoxHeight,
-                                child: TextField(
-                                  controller: _otpControllers[index],
-                                  focusNode: _focusNodes[index],
-                                  keyboardType: TextInputType.visiblePassword,
-                                  textAlign: TextAlign.center,
-                                  maxLength: 1,
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  style: AppStyles.bold20Black.copyWith(
-                                    fontSize: 18,
+                          child: Directionality(
+                            textDirection: TextDirection.ltr,
+                            child: TextFormField(
+                              controller: _otpController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 6,
+                              textAlign: TextAlign.center,
+                              autofillHints: const [AutofillHints.oneTimeCode],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              style: const TextStyle(
+                                letterSpacing: 16.0,
+                                fontSize: 24.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                filled: true,
+                                fillColor: AppColors.whiteColor,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderColor,
+                                    width: 1.5,
                                   ),
-                                  decoration: InputDecoration(
-                                    counterText: '',
-                                    filled: true,
-                                    fillColor: AppColors.whiteColor,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.borderColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.borderColor,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      ),
-                                    ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.borderColor,
+                                    width: 1.5,
                                   ),
-                                  onChanged: (value) =>
-                                      _onOTPCChanged(index, value),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.primary,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
@@ -280,4 +271,16 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       ),
     );
   }
+}
+
+class OTPVerificationArgs {
+  final Parent? parent;
+  final String phoneNumber;
+  final bool isPasswordReset;
+
+  const OTPVerificationArgs({
+    this.parent,
+    required this.phoneNumber,
+    this.isPasswordReset = false,
+  });
 }

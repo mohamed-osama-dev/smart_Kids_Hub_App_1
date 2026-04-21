@@ -48,8 +48,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
     super.initState();
     _nameController.text = widget.child.name;
     if (widget.child.birthDate.year > 1900) {
-      _birthDateController.text =
-          DateFormat('MM/dd/yyyy').format(widget.child.birthDate);
+      _birthDateController.text = DateFormat(
+        'MM/dd/yyyy',
+      ).format(widget.child.birthDate);
     }
     _heightController.text = widget.child.height?.toString() ?? '';
     _weightController.text = widget.child.weight?.toString() ?? '';
@@ -62,11 +63,20 @@ class _ChildFormCardState extends State<ChildFormCard> {
     if (widget.child.name != _nameController.text) {
       _nameController.text = widget.child.name;
     }
+    final birthDateText = widget.child.birthDate.year > 1900
+        ? DateFormat('MM/dd/yyyy').format(widget.child.birthDate)
+        : '';
+    if (_birthDateController.text != birthDateText) {
+      _birthDateController.text = birthDateText;
+    }
     if (widget.child.height?.toString() != _heightController.text) {
       _heightController.text = widget.child.height?.toString() ?? '';
     }
     if (widget.child.weight?.toString() != _weightController.text) {
       _weightController.text = widget.child.weight?.toString() ?? '';
+    }
+    if (widget.child.additionalNotes != _notesController.text) {
+      _notesController.text = widget.child.additionalNotes;
     }
   }
 
@@ -98,7 +108,8 @@ class _ChildFormCardState extends State<ChildFormCard> {
       weight: weight ?? widget.child.weight,
       healthConditions: healthConditions ?? widget.child.healthConditions,
       additionalNotes: additionalNotes ?? widget.child.additionalNotes,
-      hasNoChronicDiseases: hasNoChronicDiseases ?? widget.child.hasNoChronicDiseases,
+      hasNoChronicDiseases:
+          hasNoChronicDiseases ?? widget.child.hasNoChronicDiseases,
     );
     widget.onChanged(updatedChild);
   }
@@ -120,14 +131,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
 
   void _onNoChronicDiseasesChanged(bool? value) {
     if (value == true) {
-      _updateChild(
-        hasNoChronicDiseases: true,
-        healthConditions: [],
-      );
+      _updateChild(hasNoChronicDiseases: true, healthConditions: []);
     } else {
-      _updateChild(
-        hasNoChronicDiseases: false,
-      );
+      _updateChild(hasNoChronicDiseases: false);
     }
   }
 
@@ -144,10 +150,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
       conditions.remove(_healthConditionsList[index]);
     }
 
-    _updateChild(
-      healthConditions: conditions,
-      hasNoChronicDiseases: false,
-    );
+    _updateChild(healthConditions: conditions, hasNoChronicDiseases: false);
   }
 
   @override
@@ -193,10 +196,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'الطفل ${widget.childNumber}',
-              style: AppStyles.bold16Black,
-            ),
+            Text('الطفل ${widget.childNumber}', style: AppStyles.bold16Black),
           ],
         ),
         const SizedBox(height: 16),
@@ -228,10 +228,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
                       color: AppColors.primary,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'البيانات الأساسية',
-                      style: AppStyles.bold16Primary,
-                    ),
+                    Text('البيانات الأساسية', style: AppStyles.bold16Primary),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -305,10 +302,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
                   },
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'آخر طول تم قياسه',
-                  style: AppStyles.regular12Grey,
-                ),
+                Text('آخر طول تم قياسه', style: AppStyles.regular12Grey),
                 const SizedBox(height: 16),
                 // Weight
                 _buildFieldLabel('الوزن (كجم) *'),
@@ -320,7 +314,10 @@ class _ChildFormCardState extends State<ChildFormCard> {
                   ),
                   decoration: InputDecoration(
                     hintText: '0.0',
-                    prefixIcon: const Icon(Icons.monitor_weight_outlined, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.monitor_weight_outlined,
+                      size: 20,
+                    ),
                   ),
                   onChanged: (value) {
                     final weight = double.tryParse(value);
@@ -337,10 +334,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
                       color: AppColors.error,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'الحالة الصحية',
-                      style: AppStyles.bold16Black,
-                    ),
+                    Text('الحالة الصحية', style: AppStyles.bold16Black),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -352,8 +346,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
                       label: _healthConditionsList[index],
                       isChecked: index == 0
                           ? widget.child.hasNoChronicDiseases
-                          : widget.child.healthConditions
-                              .contains(_healthConditionsList[index]),
+                          : widget.child.healthConditions.contains(
+                              _healthConditionsList[index],
+                            ),
                       onChanged: (value) => _onConditionChanged(index, value),
                       isFirst: index == 0,
                     ),
@@ -369,10 +364,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
                       color: AppColors.secondary,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      'ملاحظات إضافية',
-                      style: AppStyles.bold14Black,
-                    ),
+                    Text('ملاحظات إضافية', style: AppStyles.bold14Black),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -388,16 +380,21 @@ class _ChildFormCardState extends State<ChildFormCard> {
                     counterText: '',
                   ),
                   onChanged: (value) => _updateChild(additionalNotes: value),
-                  buildCounter: (context,
-                      {required currentLength, required maxLength, required isFocused}) {
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '$currentLength / $maxLength',
-                        style: AppStyles.regular12Grey,
-                      ),
-                    );
-                  },
+                  buildCounter:
+                      (
+                        context, {
+                        required currentLength,
+                        required maxLength,
+                        required isFocused,
+                      }) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '$currentLength / $maxLength',
+                            style: AppStyles.regular12Grey,
+                          ),
+                        );
+                      },
                 ),
               ],
             ),
@@ -408,9 +405,6 @@ class _ChildFormCardState extends State<ChildFormCard> {
   }
 
   Widget _buildFieldLabel(String label) {
-    return Text(
-      label,
-      style: AppStyles.regular14Grey,
-    );
+    return Text(label, style: AppStyles.regular14Grey);
   }
 }

@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/dio_client.dart';
@@ -48,32 +50,37 @@ class AuthRepository {
 
   Future<int> addChild({
     required String name,
-    required int age,
+    required DateTime birthDate,
     required Gender gender,
     required double length,
     required double weight,
   }) async {
-    final genderString = gender == Gender.male ? 'Male' : 'Female';
-    final response = await _client.dio.post(
-      ApiConstants.addChild,
-      data: {
-        'name': name,
-        'age': age,
-        'gender': genderString,
-        'length': length,
-        'weight': weight,
-      },
-    );
+    final genderValue = gender == Gender.male ? 0 : 1;
+    try {
+      final response = await _client.dio.post(
+        ApiConstants.addChild,
+        data: {
+          'name': name,
+          'BirthDate': birthDate.toIso8601String().split('T').first,
+          'gender': genderValue,
+          'length': length,
+          'weight': weight,
+        },
+      );
 
-    final data = _parseResponse(response.data);
-    final childIdRaw = data['childId'];
-    final childId = childIdRaw is int
-        ? childIdRaw
-        : int.tryParse(childIdRaw?.toString() ?? '');
-    if (childId == null) {
-      throw ApiException('Child id not found');
+      final data = _parseResponse(response.data);
+      final childIdRaw = data['childId'];
+      final childId = childIdRaw is int
+          ? childIdRaw
+          : int.tryParse(childIdRaw?.toString() ?? '');
+      if (childId == null) {
+        throw ApiException('Child id not found');
+      }
+      return childId;
+    } on DioException catch (e) {
+      print('ADD CHILD ERROR: ${e.response?.data}');
+      throw ApiException(_extractDioMessage(e));
     }
-    return childId;
   }
 
   Future<Map<String, dynamic>> login({
@@ -82,10 +89,7 @@ class AuthRepository {
   }) async {
     final response = await _client.dio.post(
       ApiConstants.login,
-      data: {
-        'phoneNumber': phoneNumber,
-        'password': password,
-      },
+      data: {'phoneNumber': phoneNumber, 'password': password},
     );
     return _parseResponse(response.data);
   }
@@ -127,10 +131,7 @@ class AuthRepository {
     try {
       final response = await _client.dio.post(
         ApiConstants.setNewPassword,
-        data: {
-          'password': password,
-          'confirmPassword': confirmPassword,
-        },
+        data: {'password': password, 'confirmPassword': confirmPassword},
       );
       _parseResponse(response.data);
     } finally {
@@ -161,5 +162,20 @@ class AuthRepository {
       return <String, dynamic>{};
     }
     throw ApiException('Invalid data payload');
+  }
+
+  String _extractDioMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map<String, dynamic>) {
+      final errors = data['errors'];
+      if (errors is List && errors.isNotEmpty) {
+        return errors.first.toString();
+      }
+      final message = data['message']?.toString();
+      if (message != null && message.isNotEmpty) {
+        return message;
+      }
+    }
+    return error.message ?? 'Request failed';
   }
 }
