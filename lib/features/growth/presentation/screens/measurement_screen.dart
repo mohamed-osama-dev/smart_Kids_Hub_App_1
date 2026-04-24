@@ -43,8 +43,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (mounted) {
           setState(() {
             _isSending = false;
-            _statusText =
-                'لم يتم العثور على بيانات الطفل. يرجى تسجيل الدخول مرة أخرى.';
+            _statusText = 'بيانات الطفل غير متوفرة. الـ ID مفقود.';
           });
         }
         return;
@@ -84,7 +83,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   }
 
   Future<void> _requestPermissionsAndScan() async {
-    if (_isScanning) return; 
+    if (_isScanning) return;
 
     if (Platform.isAndroid) {
       try {
@@ -93,9 +92,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           Permission.bluetoothConnect,
           Permission.location,
         ].request();
-      } catch (_) {
-       
-      }
+      } catch (_) {}
     }
 
     if (await FlutterBluePlus.isSupported == false) {
@@ -132,7 +129,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             mfgData.containsKey(480) ||
             mfgData.containsKey(208) ||
             mfgData.keys.any((k) => k & 0xFF == 0xE0 || k & 0xFF == 0xD0)) {
-         
           print("=== 🔵 BLE Packet Received ===");
           print("Name: $deviceName");
           print("Mfg Data Keys: ${mfgData.keys.toList()}");
@@ -143,7 +139,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             int companyId = mfgData.keys.first;
             List<int> payload = mfgData.values.first;
 
-           
             int weightHighByte = companyId >> 8;
 
             if (payload.isNotEmpty) {
@@ -160,7 +155,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             }
           }
 
-        
           if (weight > 0 && weight < 200) {
             recordedWeights.add(weight);
           }
@@ -184,7 +178,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     await FlutterBluePlus.stopScan();
     subscription.cancel();
 
-    
     double finalComputedWeight = 0.0;
     if (recordedWeights.isNotEmpty) {
       Map<double, int> freq = {};
