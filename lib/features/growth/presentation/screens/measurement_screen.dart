@@ -21,6 +21,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   int _secondsLeft = 20;
   String _statusText = 'يجب تفعيل البلوتوث للاتصال بجهاز القياس';
   double _currentWeight = 0.0;
+  String _currentUnit = 'kg';
   bool _isSending = false;
 
   @override
@@ -49,10 +50,15 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         return;
       }
 
+      // Always send weight in kg to the API
+      final double weightInKg = _currentUnit == 'lb'
+          ? _currentWeight / 2.20462
+          : _currentWeight;
+
       final dio = DioClient().dio;
       final response = await dio.put(
         '${ApiConstants.updateWeight}/$childId',
-        data: {'weight': _currentWeight},
+        data: {'weight': weightInKg},
       );
 
       if (mounted) {
@@ -114,6 +120,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       _isBluetoothOn = true;
       _isScanning = true;
       _currentWeight = 0.0;
+      _currentUnit = 'kg';
       _secondsLeft = 20;
       _statusText = 'جاري البحث... يرجى ثبات الطفل لمدة $_secondsLeft ثانية';
     });
@@ -132,12 +139,21 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           print("=== 🔵 BLE Packet Received ===");
           print("Name: $deviceName");
           print("Mfg Data Keys: ${mfgData.keys.toList()}");
+          // Debug: print ALL manufacturer data entries with full payload
+          mfgData.forEach((key, value) {
+            print("  Key: $key (0x${key.toRadixString(16)}) → Payload: $value");
+          });
 
           double weight = 0.0;
 
           if (mfgData.isNotEmpty) {
             int companyId = mfgData.keys.first;
             List<int> payload = mfgData.values.first;
+
+            int lowByte = companyId & 0xFF;
+
+            // Only process kg packets (0xE0), skip lb packets (0xD0)
+            if (lowByte == 0xD0) continue;
 
             int weightHighByte = companyId >> 8;
 
@@ -155,7 +171,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             }
           }
 
-          if (weight > 0 && weight < 200) {
+          if (weight > 0 && weight < 500) {
             recordedWeights.add(weight);
           }
           print("==============================");
@@ -357,12 +373,19 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _currentWeight.toStringAsFixed(1),
+                              _currentUnit == 'kg'
+                                  ? _currentWeight.toStringAsFixed(1)
+                                  : (_currentWeight * 2.20462).toStringAsFixed(
+                                      1,
+                                    ),
                               style: AppStyles.bold24White.copyWith(
                                 fontSize: 64,
                               ),
                             ),
-                            Text('كجم', style: AppStyles.bold18White),
+                            Text(
+                              _currentUnit == 'kg' ? 'كجم' : 'رطل',
+                              style: AppStyles.bold18White,
+                            ),
                           ],
                         )
                       : _isScanning
@@ -375,10 +398,60 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+
+              // Unit toggle button (only show when weight is available)
+              if (_currentWeight > 0)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentUnit = _currentUnit == 'kg' ? 'lb' : 'kg';
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.swap_horiz,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _currentUnit == 'kg'
+                              ? 'التحويل إلى رطل (lb)'
+                              : 'التحويل إلى كيلو (kg)',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontFamily: 'Cairo',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
 
               Text(
-                _isBluetoothOn ? 'حالة البلوتوث' : 'يرجى تشغيل البلوتوث',
+                _currentWeight > 0
+                    ? (_currentUnit == 'kg'
+                          ? 'الوزن بالكيلوجرام (kg)'
+                          : 'الوزن بالرطل (lb)')
+                    : _isBluetoothOn
+                    ? 'حالة البلوتوث'
+                    : 'يرجى تشغيل البلوتوث',
                 style: AppStyles.bold18White,
               ),
               const SizedBox(height: 8),
