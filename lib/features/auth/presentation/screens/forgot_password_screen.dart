@@ -82,26 +82,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               style: AppStyles.regular14Grey,
                             ),
                             const SizedBox(height: 16),
-                            ThemedTextField(
-                              controller: _phoneController,
-                              hintText: '1012345678',
-                              keyboardType: TextInputType.phone,
-                              prefixText: '+20 ',
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'رقم الهاتف مطلوب';
-                                }
-                                final digits = value.replaceAll(RegExp(r'\D'), '');
-                                final validLength =
-                                    digits.length == 10 ||
-                                    (digits.length == 11 &&
-                                        digits.startsWith('0'));
-                                if (!validLength) {
-                                  return 'رقم الهاتف غير صحيح';
-                                }
-                                return null;
-                              },
-                              decoration: const InputDecoration(),
+                            Directionality(
+                              textDirection: TextDirection.ltr,
+                              child: ThemedTextField(
+                                controller: _phoneController,
+                                hintText: '1012345678',
+                                keyboardType: TextInputType.phone,
+                                textDirection: TextDirection.ltr,
+                                textAlign: TextAlign.left,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'رقم الهاتف مطلوب';
+                                  }
+                                  final digits = value.replaceAll(
+                                    RegExp(r'\D'),
+                                    '',
+                                  );
+                                  final validLength =
+                                      digits.length == 10 ||
+                                      (digits.length == 11 &&
+                                          digits.startsWith('0'));
+                                  if (!validLength) {
+                                    return 'رقم الهاتف غير صحيح';
+                                  }
+                                  return null;
+                                },
+                                decoration: const InputDecoration(
+                                  prefix: Padding(
+                                    padding: EdgeInsets.only(right: 4),
+                                    child: Text('+20 '),
+                                  ),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 24),
                             if (cubit.isLoading) ...[
@@ -113,7 +125,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               const SizedBox(height: 12),
                             ],
                             CustomElevatedButton(
-                              onPressed: cubit.isLoading ? () {} : _handleSubmit,
+                              onPressed: cubit.isLoading
+                                  ? () {}
+                                  : _handleSubmit,
                               text: cubit.isLoading
                                   ? 'جاري الإرسال...'
                                   : 'إرسال الرمز',

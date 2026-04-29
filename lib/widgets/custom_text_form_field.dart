@@ -6,6 +6,8 @@ class ThemedTextField extends StatefulWidget {
     super.key,
     this.controller,
     this.keyboardType = TextInputType.text,
+    this.textDirection,
+    this.textAlign = TextAlign.start,
     this.prefixText,
     this.prefixIcon,
     required this.hintText,
@@ -18,12 +20,14 @@ class ThemedTextField extends StatefulWidget {
     this.readOnly = false,
     this.onTap,
     this.focusNode,
-    required InputDecoration decoration,
+    this.decoration = const InputDecoration(),
   });
 
   final TextEditingController? controller;
   final String hintText;
   final TextInputType keyboardType;
+  final TextDirection? textDirection;
+  final TextAlign textAlign;
   final String? prefixText;
   final Widget? prefixIcon;
   final String? Function(String?)? validator;
@@ -35,6 +39,7 @@ class ThemedTextField extends StatefulWidget {
   final bool readOnly;
   final VoidCallback? onTap;
   final FocusNode? focusNode;
+  final InputDecoration decoration;
 
   @override
   State<ThemedTextField> createState() => _ThemedTextFieldState();
@@ -61,8 +66,10 @@ class _ThemedTextFieldState extends State<ThemedTextField> {
       obscureText: _isObscure,
       maxLines: widget.maxLines,
       keyboardType: widget.keyboardType,
+      textDirection: widget.textDirection,
+      textAlign: widget.textAlign,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      decoration: InputDecoration(
+      decoration: widget.decoration.copyWith(
         hintText: widget.hintText,
         prefixText: widget.prefixText,
         prefixStyle: textTheme.titleMedium?.copyWith(
@@ -83,7 +90,7 @@ class _ThemedTextFieldState extends State<ThemedTextField> {
                   color: AppColors.textSecondary,
                 ),
               )
-            : null,
+            : widget.decoration.suffixIcon,
       ),
     );
   }

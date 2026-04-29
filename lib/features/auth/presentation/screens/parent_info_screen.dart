@@ -149,29 +149,34 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
                                 // Phone number
                                 _buildFieldLabel('رقم الهاتف'),
                                 const SizedBox(height: 8),
-                                ThemedTextField(
-                                  controller: _phoneController,
-                                  hintText: '1012345678',
-                                  keyboardType: TextInputType.phone,
-                                  prefixText: '+20 ',
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'رقم الهاتف مطلوب';
-                                    }
-                                    final digits = value.replaceAll(
-                                      RegExp(r'\D'),
-                                      '',
-                                    );
-                                    final validLength =
-                                        digits.length == 10 ||
-                                        (digits.length == 11 &&
-                                            digits.startsWith('0'));
-                                    if (!validLength) {
-                                      return 'رقم الهاتف غير صحيح';
-                                    }
-                                    return null;
-                                  },
-                                  decoration: const InputDecoration(),
+                                Directionality(
+                                  textDirection: TextDirection.ltr,
+                                  child: ThemedTextField(
+                                    controller: _phoneController,
+                                    hintText: '1012345678',
+                                    keyboardType: TextInputType.phone,
+                                    textDirection: TextDirection.ltr,
+                                    textAlign: TextAlign.left,
+                                    prefixText: '+20 ',
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'رقم الهاتف مطلوب';
+                                      }
+                                      final digits = value.replaceAll(
+                                        RegExp(r'\D'),
+                                        '',
+                                      );
+                                      final validLength =
+                                          digits.length == 10 ||
+                                          (digits.length == 11 &&
+                                              digits.startsWith('0'));
+                                      if (!validLength) {
+                                        return 'رقم الهاتف غير صحيح';
+                                      }
+                                      return null;
+                                    },
+                                    decoration: const InputDecoration(),
+                                  ),
                                 ),
                                 const SizedBox(height: 16),
                                 // Password
@@ -181,6 +186,8 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
                                   controller: _passwordController,
                                   hintText: '••••••••••',
                                   keyboardType: TextInputType.visiblePassword,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.left,
                                   isPassword: true,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
@@ -201,6 +208,8 @@ class _ParentInfoScreenState extends State<ParentInfoScreen> {
                                   controller: _confirmPasswordController,
                                   hintText: '••••••••••',
                                   keyboardType: TextInputType.visiblePassword,
+                                  textDirection: TextDirection.ltr,
+                                  textAlign: TextAlign.left,
                                   isPassword: true,
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
