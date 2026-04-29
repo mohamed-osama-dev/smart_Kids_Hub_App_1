@@ -3,17 +3,16 @@ import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 import '../../domain/entities/entities.dart';
 import 'ingredient_chip.dart';
+import 'recipe_bottom_sheet.dart';
 
 class MealCard extends StatelessWidget {
   final Meal meal;
-  final VoidCallback? onFavorite;
   final VoidCallback? onCheck;
   final VoidCallback? onViewRecipe;
 
   const MealCard({
     super.key,
     required this.meal,
-    this.onFavorite,
     this.onCheck,
     this.onViewRecipe,
   });
@@ -161,7 +160,7 @@ class MealCard extends StatelessWidget {
                   children: [
                     // View recipe button
                     TextButton(
-                      onPressed: onViewRecipe,
+                      onPressed: onViewRecipe ?? () => RecipeBottomSheet.show(context, meal),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
@@ -181,31 +180,16 @@ class MealCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Favorite and Check
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: onFavorite,
-                          icon: Icon(
-                            meal.isFavorite ? Icons.favorite : Icons.favorite_border,
-                            color: meal.isFavorite ? AppColors.accent : AppColors.textSecondary,
-                            size: 22,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        const SizedBox(width: 12),
-                        IconButton(
-                          onPressed: onCheck,
-                          icon: Icon(
-                            meal.isChecked ? Icons.check_circle : Icons.check_circle_outline,
-                            color: meal.isChecked ? AppColors.success : AppColors.textSecondary,
-                            size: 22,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
+                    // Check button
+                    IconButton(
+                      onPressed: onCheck,
+                      icon: Icon(
+                        meal.isChecked ? Icons.check_circle : Icons.check_circle_outline,
+                        color: meal.isChecked ? AppColors.success : AppColors.textSecondary,
+                        size: 22,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
                   ],
                 ),

@@ -8,8 +8,22 @@ import '../widgets/widgets.dart';
 /// NOTE: This widget has NO Scaffold of its own.
 /// The bottom navigation bar lives in the app shell (HomePage).
 /// All tab screens are plain widgets — no Scaffold wrapper.
-class MealsScreen extends StatelessWidget {
+class MealsScreen extends StatefulWidget {
   const MealsScreen({super.key});
+
+  @override
+  State<MealsScreen> createState() => _MealsScreenState();
+}
+
+class _MealsScreenState extends State<MealsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Load saved weekly plan when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MealsCubit>().loadSavedPlan();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,35 +78,40 @@ class _MealsBody extends StatelessWidget {
     return SafeArea(
       child: Column(
         children: [
-          // Week day selector
+          // Week day selector — ثابت فوق
           WeekDaySelector(
             selectedIndex: state.selectedDayIndex,
             onDaySelected: (index) {
               cubit.selectDay(index);
-              // In a real app, you'd also fetch meals for that date
-              // cubit.getMealsByDate(dateForIndex(index));
             },
           ),
-          // Ingredients card
-          IngredientsCard(
-            ingredients: state.ingredients,
-            onRemoveIngredient: cubit.removeIngredient,
-            onAddIngredient: () => _showAddIngredientDialog(context, cubit),
-          ),
-          // Allergies card
-          _AllergiesCard(
-            allergies: state.allergies,
-            onRemoveAllergy: cubit.removeAllergy,
-            onAddAllergy: () => _showAddAllergyDialog(context, cubit),
-          ),
-          // AI Suggest button
-          AiSuggestButton(
-            onPressed: () => cubit.getAiSuggestions(),
-            isLoading: state.status == MealsStatus.loading,
-          ),
-          // Meals list (shows when loaded)
+          // الباقي كله يسحب
           Expanded(
-            child: _buildContent(context, cubit, state),
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Ingredients card
+                  IngredientsCard(
+                    ingredients: state.ingredients,
+                    onRemoveIngredient: cubit.removeIngredient,
+                    onAddIngredient: () => _showAddIngredientDialog(context, cubit),
+                  ),
+                  // Allergies card
+                  _AllergiesCard(
+                    allergies: state.allergies,
+                    onRemoveAllergy: cubit.removeAllergy,
+                    onAddAllergy: () => _showAddAllergyDialog(context, cubit),
+                  ),
+                  // AI Suggest button
+                  AiSuggestButton(
+                    onPressed: () => cubit.getAiSuggestions(),
+                    isLoading: state.status == MealsStatus.loading,
+                  ),
+                  // Meals content
+                  _buildContent(context, cubit, state),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -102,35 +121,55 @@ class _MealsBody extends StatelessWidget {
   Widget _buildContent(BuildContext context, MealsCubit cubit, MealsState state) {
     switch (state.status) {
       case MealsStatus.initial:
-        return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            children: [
+              Icon(Icons.restaurant_menu, size: 56, color: Colors.grey.shade300),
+              const SizedBox(height: 16),
+              Text(
+                'اضغط "اقتراحات AI" لتحميل خطة الأسبوع 🍽️',
+                style: AppStyles.regular14Grey,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
       case MealsStatus.loading:
-        return const Center(
-          child: CircularProgressIndicator(
-            color: AppColors.primary,
+        return const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.primary,
+            ),
           ),
         );
       case MealsStatus.loaded:
-        return ListView.builder(
+        final dayMeals = state.meals;
+        if (dayMeals.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              'لا توجد وجبات لهذا اليوم',
+              style: AppStyles.regular14Grey,
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+        return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          itemCount: state.meals.length,
-          itemBuilder: (context, index) {
-            final meal = state.meals[index];
-            return MealCard(
-              meal: meal,
-              onFavorite: () => cubit.toggleFavorite(meal.id),
-              onCheck: () {
-                // Toggle checked state (would need to be added to cubit)
-              },
-              onViewRecipe: () {
-                // TODO: Navigate to recipe detail
-              },
-            );
-          },
+          child: Column(
+            children: dayMeals.map((meal) {
+              return MealCard(
+                meal: meal,
+              );
+            }).toList(),
+          ),
         );
       case MealsStatus.error:
-        return Center(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.error),
               const SizedBox(height: 16),

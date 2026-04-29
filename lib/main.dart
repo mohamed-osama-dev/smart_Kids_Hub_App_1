@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
     final getAiMealSuggestions = GetAiMealSuggestions(repository);
     final getMealsByDate = GetMealsByDate(repository);
     final toggleFavoriteMeal = ToggleFavoriteMeal(repository);
+    final getSavedWeeklyPlan = GetSavedWeeklyPlan(repository);
 
     return MultiProvider(
       providers: [
@@ -47,6 +48,7 @@ class MyApp extends StatelessWidget {
             getAiMealSuggestions: getAiMealSuggestions,
             getMealsByDate: getMealsByDate,
             toggleFavoriteMeal: toggleFavoriteMeal,
+            getSavedWeeklyPlan: getSavedWeeklyPlan,
           ),
         ),
       ],
