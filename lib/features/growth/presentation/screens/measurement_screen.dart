@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-import '../../../../core/network/api_constants.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/secure_storage_service.dart';
+import '../../data/repositories/scale_reading_repository.dart';
 import '../../../../utils/app_colors.dart';
+import '../../../../utils/app_routes.dart';
 import '../../../../utils/app_styles.dart';
 
 class MeasurementScreen extends StatefulWidget {
@@ -50,19 +50,14 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         return;
       }
 
-      // Always send weight in kg to the API
-      final double weightInKg = _currentUnit == 'lb'
-          ? _currentWeight / 2.20462
-          : _currentWeight;
-
-      final dio = DioClient().dio;
-      final response = await dio.put(
-        '${ApiConstants.updateWeight}/$childId',
-        data: {'weight': weightInKg},
+      // _currentWeight is always in kg (from BLE)
+      final repo = ScaleReadingRepository();
+      final success = await repo.updateWeight(
+        childId: childId,
+        weight: _currentWeight,
       );
 
       if (mounted) {
-        final success = response.data?['success'] == true;
         setState(() {
           _isSending = false;
           _statusText = success
@@ -72,13 +67,24 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم تسجيل الوزن بنجاح!'),
+              content: Text(
+                'تم تسجيل الوزن بنجاح! جاري الانتقال لتخطيط الوجبات...',
+              ),
               backgroundColor: Colors.green,
             ),
           );
+          // Navigate to meals tab after short delay
+          Future.delayed(const Duration(milliseconds: 1200), () {
+            if (mounted) {
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppRoutes.home, arguments: 1);
+            }
+          });
         }
       }
     } catch (e) {
+      print('❌ Send weight error: $e');
       if (mounted) {
         setState(() {
           _isSending = false;
@@ -139,7 +145,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           print("=== 🔵 BLE Packet Received ===");
           print("Name: $deviceName");
           print("Mfg Data Keys: ${mfgData.keys.toList()}");
-          // Debug: print ALL manufacturer data entries with full payload
+
           mfgData.forEach((key, value) {
             print("  Key: $key (0x${key.toRadixString(16)}) → Payload: $value");
           });
@@ -152,7 +158,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
 
             int lowByte = companyId & 0xFF;
 
-            // Only process kg packets (0xE0), skip lb packets (0xD0)
             if (lowByte == 0xD0) continue;
 
             int weightHighByte = companyId >> 8;
@@ -465,6 +470,36 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                   ),
                 ),
               ),
+
+              // Helper text when weight is ready
+              if (_currentWeight > 0 && !_isScanning && !_isSending)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'اضغط إرسال وتعالى نعمل خطة الوجبات! ',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 20,
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '🍽️',
+                        style: TextStyle(
+                          fontSize: 50,
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_currentWeight > 0 && !_isScanning && !_isSending)
+                const SizedBox(height: 12),
 
               const Spacer(),
 

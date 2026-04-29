@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Setup meals feature dependencies
-    final dataSource = MockMealRemoteDataSource();
+    final dataSource = ApiMealRemoteDataSource();
     final repository = MealRepositoryImpl(remoteDataSource: dataSource);
     final getAiMealSuggestions = GetAiMealSuggestions(repository);
     final getMealsByDate = GetMealsByDate(repository);
@@ -104,6 +104,19 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  bool _didReadArgs = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didReadArgs) {
+      _didReadArgs = true;
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is int && args >= 0 && args < 3) {
+        _currentIndex = args;
+      }
+    }
+  }
 
   final List<Widget> _screens = const [
     _HomeTab(),

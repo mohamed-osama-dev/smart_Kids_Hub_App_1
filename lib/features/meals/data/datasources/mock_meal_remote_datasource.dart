@@ -11,8 +11,9 @@ class MockMealRemoteDataSource implements MealRemoteDataSource {
   @override
   Future<List<MealModel>> getAiSuggestions(
     List<String> ingredients,
-    String childId,
-  ) async {
+    String childId, {
+    List<String> allergies = const [],
+  }) async {
     await _delay();
     debugPrint('MockMealRemoteDataSource: getAiSuggestions for child $childId with ingredients: $ingredients');
 

@@ -10,9 +10,10 @@ class MealRepositoryImpl implements MealRepository {
   @override
   Future<List<Meal>> getAiSuggestions(
     List<String> ingredients,
-    String childId,
-  ) async {
-    final mealModels = await remoteDataSource.getAiSuggestions(ingredients, childId);
+    String childId, {
+    List<String> allergies = const [],
+  }) async {
+    final mealModels = await remoteDataSource.getAiSuggestions(ingredients, childId, allergies: allergies);
     return mealModels;
   }
 

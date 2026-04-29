@@ -79,6 +79,12 @@ class _MealsBody extends StatelessWidget {
             onRemoveIngredient: cubit.removeIngredient,
             onAddIngredient: () => _showAddIngredientDialog(context, cubit),
           ),
+          // Allergies card
+          _AllergiesCard(
+            allergies: state.allergies,
+            onRemoveAllergy: cubit.removeAllergy,
+            onAddAllergy: () => _showAddAllergyDialog(context, cubit),
+          ),
           // AI Suggest button
           AiSuggestButton(
             onPressed: () => cubit.getAiSuggestions(),
@@ -171,6 +177,129 @@ class _MealsBody extends StatelessWidget {
               }
             },
             child: const Text('إضافة'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddAllergyDialog(BuildContext context, MealsCubit cubit) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('إضافة حساسية', style: AppStyles.bold18Black),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'مثال: فول سوداني، حليب، بيض',
+            border: OutlineInputBorder(),
+          ),
+          textDirection: TextDirection.rtl,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('إلغاء', style: AppStyles.semi14Primary),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                cubit.addAllergy(controller.text.trim());
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('إضافة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AllergiesCard extends StatelessWidget {
+  final List<String> allergies;
+  final Function(String) onRemoveAllergy;
+  final VoidCallback onAddAllergy;
+
+  const _AllergiesCard({
+    required this.allergies,
+    required this.onRemoveAllergy,
+    required this.onAddAllergy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.whiteColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade100, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'حساسية الطفل',
+                style: AppStyles.bold16Black,
+              ),
+              const SizedBox(width: 4),
+              const Text('⚠️', style: TextStyle(fontSize: 16)),
+            ],
+          ),
+          if (allergies.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
+              children: allergies.map((allergy) {
+                return Chip(
+                  label: Text(
+                    allergy,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontFamily: 'Cairo',
+                    ),
+                  ),
+                  backgroundColor: Colors.red.shade400,
+                  deleteIconColor: Colors.white,
+                  onDeleted: () => onRemoveAllergy(allergy),
+                );
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onAddAllergy,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('إضافة حساسية'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade400,
+                side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
         ],
       ),
