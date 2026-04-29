@@ -175,7 +175,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                               controller: _otpController,
                               keyboardType: TextInputType.number,
                               maxLength: 6,
-                              textAlign: TextAlign.center,
+                              textDirection: TextDirection.ltr,
+                              textAlign: TextAlign.left,
                               autofillHints: const [AutofillHints.oneTimeCode],
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,

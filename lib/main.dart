@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
+import 'core/services/hive_service.dart';
 import 'features/auth/domain/models/parent.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
+import 'features/auth/presentation/cubit/children_cubit.dart';
 import 'features/auth/presentation/screens/screens.dart';
 import 'features/meals/data/data.dart';
 import 'features/meals/domain/domain.dart';
@@ -16,9 +18,10 @@ import 'utils/app_styles.dart';
 import 'utils/app_theme.dart';
 import 'utils/splash_screen.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  await HiveService.init();
 
   runApp(const MyApp());
 }
@@ -38,6 +41,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthCubit()),
+        ChangeNotifierProvider(create: (_) => ChildrenCubit()),
         ChangeNotifierProvider(
           create: (_) => MealsCubit(
             getAiMealSuggestions: getAiMealSuggestions,
@@ -151,14 +155,16 @@ class _HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<_HomeTab> {
-  final List<_HomeChildSummary> _children = [
-    _HomeChildSummary(name: 'أحمد', ageLabel: '4 سنوات و 3 شهور'),
-    _HomeChildSummary(name: 'ليان', ageLabel: '2 سنوات و 8 شهور'),
-  ];
-
-  int _activeChildIndex = 0;
-
   static const String _addChildMenuValue = 'add-new-child';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ChildrenCubit>().loadChildren();
+    });
+  }
 
   void _handleChildMenuSelection(String value) {
     if (value == _addChildMenuValue) {
@@ -167,20 +173,12 @@ class _HomeTabState extends State<_HomeTab> {
     }
 
     final childIndex = int.tryParse(value);
-    if (childIndex == null ||
-        childIndex < 0 ||
-        childIndex >= _children.length ||
-        childIndex == _activeChildIndex) {
-      return;
-    }
-    setState(() {
-      _activeChildIndex = childIndex;
-    });
+    if (childIndex == null) return;
+    context.read<ChildrenCubit>().setActiveChild(childIndex);
   }
 
   @override
   Widget build(BuildContext context) {
-    final activeChild = _children[_activeChildIndex];
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark,
       child: Directionality(
@@ -220,128 +218,183 @@ class _HomeTabState extends State<_HomeTab> {
                 // ── Green Child Card ─────────────────────────────
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  child: Consumer<ChildrenCubit>(
+                    builder: (context, childrenCubit, _) {
+                      final childrenState = childrenCubit.state;
+                      final activeChild = childrenState.activeChild;
+                      final showLoading =
+                          childrenState.status == ChildrenStatus.loading &&
+                          childrenState.children.isEmpty;
+                      final showError =
+                          childrenState.status == ChildrenStatus.error &&
+                          childrenState.children.isEmpty;
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Avatar circle
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.whiteColor,
-                              ),
-                              child: const Center(
-                                child: Text('👦', style: TextStyle(fontSize: 30)),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Name + age
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            if (showLoading)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 24),
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.whiteColor,
+                                  ),
+                                ),
+                              )
+                            else if (showError)
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'تعذر تحميل بيانات الأطفال',
+                                      style: AppStyles.regular14White,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    IconButton(
+                                      onPressed: () {
+                                        context.read<ChildrenCubit>().loadChildren();
+                                      },
+                                      icon: const Icon(
+                                        Icons.refresh,
+                                        color: AppColors.whiteColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              Row(
                                 children: [
-                                   Row(
-                                     children: [
-                                       PopupMenuButton<String>(
-                                         onSelected: _handleChildMenuSelection,
-                                         itemBuilder: (context) {
-                                           return [
-                                             ...List.generate(
-                                               _children.length,
-                                               (index) => PopupMenuItem<String>(
-                                                 value: '$index',
-                                                 child: Row(
-                                                   children: [
-                                                     Icon(
-                                                       index == _activeChildIndex
-                                                           ? Icons.check_circle
-                                                           : Icons.person_outline,
-                                                       size: 18,
-                                                       color: index ==
-                                                               _activeChildIndex
-                                                           ? AppColors.primary
-                                                           : null,
-                                                     ),
-                                                     const SizedBox(width: 8),
-                                                     Text(_children[index].name),
-                                                   ],
-                                                 ),
-                                               ),
-                                             ),
-                                             const PopupMenuDivider(),
-                                             const PopupMenuItem<String>(
-                                               value: _addChildMenuValue,
-                                               child: Row(
-                                                 children: [
-                                                   Icon(Icons.add, size: 18),
-                                                   SizedBox(width: 8),
-                                                   Text('إضافة طفل جديد'),
-                                                 ],
-                                               ),
-                                             ),
-                                           ];
-                                         },
-                                         child: Row(
-                                           children: [
-                                             Text(
-                                               activeChild.name,
-                                               style: AppStyles.bold18White,
-                                             ),
-                                             const SizedBox(width: 4),
-                                             const Icon(
-                                               Icons.keyboard_arrow_down,
-                                               color: AppColors.whiteColor,
-                                               size: 20,
-                                             ),
-                                           ],
-                                         ),
-                                       ),
-                                     ],
-                                   ),
-                                   const SizedBox(height: 2),
-                                   Text(
-                                     activeChild.ageLabel,
-                                     style: AppStyles.regular14White,
-                                   ),
+                                  // Avatar circle
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.whiteColor,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        activeChild?.genderEmoji ?? '👶',
+                                        style: const TextStyle(fontSize: 30),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Name + age
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            PopupMenuButton<String>(
+                                              onSelected: _handleChildMenuSelection,
+                                              itemBuilder: (context) {
+                                                return [
+                                                  ...List.generate(
+                                                    childrenState.children.length,
+                                                    (index) => PopupMenuItem<String>(
+                                                      value: '$index',
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            index ==
+                                                                    childrenState
+                                                                        .activeChildIndex
+                                                                ? Icons.check_circle
+                                                                : Icons
+                                                                      .person_outline,
+                                                            size: 18,
+                                                            color: index ==
+                                                                    childrenState
+                                                                        .activeChildIndex
+                                                                ? AppColors.primary
+                                                                : null,
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          Text(
+                                                            childrenState
+                                                                .children[index]
+                                                                .name,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const PopupMenuDivider(),
+                                                  const PopupMenuItem<String>(
+                                                    value: _addChildMenuValue,
+                                                    child: Row(
+                                                      children: [
+                                                        Icon(Icons.add, size: 18),
+                                                        SizedBox(width: 8),
+                                                        Text('إضافة طفل جديد'),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ];
+                                              },
+                                              child: Row(
+                                                children: [
+                                                  Text(
+                                                    activeChild?.name ?? 'طفلك',
+                                                    style: AppStyles.bold18White,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  const Icon(
+                                                    Icons.keyboard_arrow_down,
+                                                    color: AppColors.whiteColor,
+                                                    size: 20,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          activeChild?.ageLabel ?? '',
+                                          style: AppStyles.regular14White,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
+                              ),
+                            const SizedBox(height: 16),
+                            // Add measurement button
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, AppRoutes.measurement);
+                                },
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('إضافة قياس جديد'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.whiteColor,
+                                  side: const BorderSide(
+                                    color: AppColors.whiteColor,
+                                    width: 1.5,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        // Add measurement button
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pushNamed(context, AppRoutes.measurement);
-                            },
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('إضافة قياس جديد'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.whiteColor,
-                              side: const BorderSide(
-                                color: AppColors.whiteColor,
-                                width: 1.5,
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),

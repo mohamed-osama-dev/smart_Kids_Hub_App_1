@@ -33,4 +33,9 @@ class SecureStorageService {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
   }
+
+  static Future<void> clearAll() async {
+    // Single storage operation to clear persisted auth/session state.
+    await _storage.deleteAll();
+  }
 }

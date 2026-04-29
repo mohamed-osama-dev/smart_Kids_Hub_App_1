@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/network/secure_storage_service.dart';
+import '../../../../core/services/session_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../domain/models/child.dart';
 
@@ -77,6 +78,7 @@ class AuthCubit extends ChangeNotifier {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      await SessionService.setLoggedIn(true);
       sessionToken = null;
       return true;
     } on DioException catch (e) {
@@ -165,6 +167,7 @@ class AuthCubit extends ChangeNotifier {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      await SessionService.setLoggedIn(true);
 
       // Attempt to save childId if returned in login response
       final childIdRaw =
@@ -258,7 +261,7 @@ class AuthCubit extends ChangeNotifier {
     } catch (e) {
       errorMessage = _extractMessage(e);
     } finally {
-      await SecureStorageService.clearTokens();
+      await SessionService.clearSession();
       sessionToken = null;
       isLoading = false;
       notifyListeners();

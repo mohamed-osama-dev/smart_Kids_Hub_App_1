@@ -13,7 +13,8 @@ class ApiConstants {
 
   static const String registerParent = '/api/auth/register-parent';
   static const String verifyOtp = '/api/auth/verify-otp';
-  static const String addChild = '/api/auth/children';
+  static const String addChild = '/api/children';
+  static const String getChildren = '/api/children';
   static const String login = '/api/auth/login';
   static const String logout = '/api/auth/logout';
   static const String refreshToken = '/api/auth/refresh-token';
