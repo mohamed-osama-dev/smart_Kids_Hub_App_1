@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import '../core/services/session_service.dart';
 import 'app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,7 +21,11 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 3));
     if (mounted) {
       FlutterNativeSplash.remove();
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      final isLoggedIn = await SessionService.isLoggedIn();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed(
+        isLoggedIn ? AppRoutes.home : AppRoutes.login,
+      );
     }
   }
 

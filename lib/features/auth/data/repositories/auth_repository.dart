@@ -100,16 +100,27 @@ class AuthRepository {
   }
 
   Future<String> forgotPassword({required String phoneNumber}) async {
-    final response = await _client.dio.post(
-      ApiConstants.forgotPassword,
-      data: {'phoneNumber': phoneNumber},
-    );
-    final data = _parseResponse(response.data);
-    final sessionToken = data['sessionToken']?.toString();
-    if (sessionToken == null || sessionToken.isEmpty) {
-      throw ApiException('Session token not found');
+    print('--- FORGOT PASSWORD REQUEST ---');
+    print('Payload sent: {"phoneNumber": "$phoneNumber"}');
+    try {
+      final response = await _client.dio.post(
+        ApiConstants.forgotPassword,
+        data: {'phoneNumber': phoneNumber},
+      );
+      final data = _parseResponse(response.data);
+      final sessionToken = data['sessionToken']?.toString();
+      if (sessionToken == null || sessionToken.isEmpty) {
+        throw ApiException('Session token not found');
+      }
+      return sessionToken;
+    } catch (e) {
+      if (e is DioException) {
+        print('--- FORGOT PASSWORD ERROR ---');
+        print('Status Code: ${e.response?.statusCode}');
+        print('Raw Response: ${e.response?.data}');
+      }
+      rethrow;
     }
-    return sessionToken;
   }
 
   Future<void> resendCode({required String sessionToken}) async {
