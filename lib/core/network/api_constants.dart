@@ -21,4 +21,6 @@ class ApiConstants {
   static const String resendCode = '/api/auth/resend-code';
   static const String setNewPassword = '/api/auth/set-new-password';
   static const String updateWeight = '/api/ScaleReading/update-weight';
+  static const String generateDietPlan = '/api/DietPlan/generate';
+  static const String getDietPlan = '/api/DietPlan'; 
 }

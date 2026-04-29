@@ -100,13 +100,14 @@ class AuthCubit extends ChangeNotifier {
       if (child.weight == null || child.height == null) {
         throw ApiException('بيانات الطفل غير مكتملة');
       }
-      await _repo.addChild(
+      final childId = await _repo.addChild(
         name: child.name,
         birthDate: child.birthDate,
         gender: child.gender,
         length: child.height!,
         weight: child.weight!,
       );
+      await SecureStorageService.saveChildId(childId);
       return true;
     } on DioException catch (e) {
       print('ADD CHILD ERROR: ${e.response?.data}');
@@ -150,6 +151,10 @@ class AuthCubit extends ChangeNotifier {
         phoneNumber: normalizedPhone,
         password: password,
       );
+      print('=== LOGIN RESPONSE DATA ===');
+      print('Keys: ${data.keys.toList()}');
+      print('Full data: $data');
+      print('===========================');
       final accessToken = data['accessToken']?.toString();
       final refreshToken = data['refreshToken']?.toString();
       if (accessToken == null || refreshToken == null) {
@@ -160,6 +165,30 @@ class AuthCubit extends ChangeNotifier {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+
+      // Attempt to save childId if returned in login response
+      final childIdRaw =
+          data['childId'] ??
+          data['ChildId'] ??
+          (data['child'] != null ? (data['child']['id'] ?? data['child']['Id']) : null) ??
+          (data['children'] is List && (data['children'] as List).isNotEmpty
+              ? (data['children'] as List).first['id'] ?? (data['children'] as List).first['Id']
+              : null);
+      print('=== CHILD ID CHECK ===');
+      print('childIdRaw: $childIdRaw');
+      print('======================');
+      if (childIdRaw != null) {
+        final childId = childIdRaw is int
+            ? childIdRaw
+            : int.tryParse(childIdRaw.toString());
+        if (childId != null) {
+          await SecureStorageService.saveChildId(childId);
+          print('✅ Child ID saved: $childId');
+        }
+      } else {
+        print('⚠️ No childId found in login response!');
+      }
+
       return true;
     } catch (e) {
       errorMessage = _extractMessage(e);

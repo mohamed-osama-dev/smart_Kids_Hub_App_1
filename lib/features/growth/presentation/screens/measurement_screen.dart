@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
-import '../../../../core/network/api_constants.dart';
-import '../../../../core/network/dio_client.dart';
 import '../../../../core/network/secure_storage_service.dart';
+import '../../data/repositories/scale_reading_repository.dart';
 import '../../../../utils/app_colors.dart';
+import '../../../../utils/app_routes.dart';
 import '../../../../utils/app_styles.dart';
 
 class MeasurementScreen extends StatefulWidget {
@@ -21,6 +21,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   int _secondsLeft = 20;
   String _statusText = 'يجب تفعيل البلوتوث للاتصال بجهاز القياس';
   double _currentWeight = 0.0;
+  String _currentUnit = 'kg';
   bool _isSending = false;
 
   @override
@@ -43,21 +44,20 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (mounted) {
           setState(() {
             _isSending = false;
-            _statusText =
-                'لم يتم العثور على بيانات الطفل. يرجى تسجيل الدخول مرة أخرى.';
+            _statusText = 'بيانات الطفل غير متوفرة. الـ ID مفقود.';
           });
         }
         return;
       }
 
-      final dio = DioClient().dio;
-      final response = await dio.put(
-        '${ApiConstants.updateWeight}/$childId',
-        data: {'weight': _currentWeight},
+      // _currentWeight is always in kg (from BLE)
+      final repo = ScaleReadingRepository();
+      final success = await repo.updateWeight(
+        childId: childId,
+        weight: _currentWeight,
       );
 
       if (mounted) {
-        final success = response.data?['success'] == true;
         setState(() {
           _isSending = false;
           _statusText = success
@@ -67,13 +67,24 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم تسجيل الوزن بنجاح!'),
+              content: Text(
+                'تم تسجيل الوزن بنجاح! جاري الانتقال لتخطيط الوجبات...',
+              ),
               backgroundColor: Colors.green,
             ),
           );
+          // Navigate to meals tab after short delay
+          Future.delayed(const Duration(milliseconds: 1200), () {
+            if (mounted) {
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppRoutes.home, arguments: 1);
+            }
+          });
         }
       }
     } catch (e) {
+      print('❌ Send weight error: $e');
       if (mounted) {
         setState(() {
           _isSending = false;
@@ -84,7 +95,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
   }
 
   Future<void> _requestPermissionsAndScan() async {
-    if (_isScanning) return; 
+    if (_isScanning) return;
 
     if (Platform.isAndroid) {
       try {
@@ -93,9 +104,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
           Permission.bluetoothConnect,
           Permission.location,
         ].request();
-      } catch (_) {
-       
-      }
+      } catch (_) {}
     }
 
     if (await FlutterBluePlus.isSupported == false) {
@@ -117,6 +126,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
       _isBluetoothOn = true;
       _isScanning = true;
       _currentWeight = 0.0;
+      _currentUnit = 'kg';
       _secondsLeft = 20;
       _statusText = 'جاري البحث... يرجى ثبات الطفل لمدة $_secondsLeft ثانية';
     });
@@ -132,10 +142,13 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             mfgData.containsKey(480) ||
             mfgData.containsKey(208) ||
             mfgData.keys.any((k) => k & 0xFF == 0xE0 || k & 0xFF == 0xD0)) {
-         
           print("=== 🔵 BLE Packet Received ===");
           print("Name: $deviceName");
           print("Mfg Data Keys: ${mfgData.keys.toList()}");
+
+          mfgData.forEach((key, value) {
+            print("  Key: $key (0x${key.toRadixString(16)}) → Payload: $value");
+          });
 
           double weight = 0.0;
 
@@ -143,7 +156,10 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             int companyId = mfgData.keys.first;
             List<int> payload = mfgData.values.first;
 
-           
+            int lowByte = companyId & 0xFF;
+
+            if (lowByte == 0xD0) continue;
+
             int weightHighByte = companyId >> 8;
 
             if (payload.isNotEmpty) {
@@ -160,8 +176,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
             }
           }
 
-        
-          if (weight > 0 && weight < 200) {
+          if (weight > 0 && weight < 500) {
             recordedWeights.add(weight);
           }
           print("==============================");
@@ -184,7 +199,6 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
     await FlutterBluePlus.stopScan();
     subscription.cancel();
 
-    
     double finalComputedWeight = 0.0;
     if (recordedWeights.isNotEmpty) {
       Map<double, int> freq = {};
@@ -364,12 +378,19 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _currentWeight.toStringAsFixed(1),
+                              _currentUnit == 'kg'
+                                  ? _currentWeight.toStringAsFixed(1)
+                                  : (_currentWeight * 2.20462).toStringAsFixed(
+                                      1,
+                                    ),
                               style: AppStyles.bold24White.copyWith(
                                 fontSize: 64,
                               ),
                             ),
-                            Text('كجم', style: AppStyles.bold18White),
+                            Text(
+                              _currentUnit == 'kg' ? 'كجم' : 'رطل',
+                              style: AppStyles.bold18White,
+                            ),
                           ],
                         )
                       : _isScanning
@@ -382,10 +403,60 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+
+              // Unit toggle button (only show when weight is available)
+              if (_currentWeight > 0)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentUnit = _currentUnit == 'kg' ? 'lb' : 'kg';
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.swap_horiz,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _currentUnit == 'kg'
+                              ? 'التحويل إلى رطل (lb)'
+                              : 'التحويل إلى كيلو (kg)',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontFamily: 'Cairo',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
 
               Text(
-                _isBluetoothOn ? 'حالة البلوتوث' : 'يرجى تشغيل البلوتوث',
+                _currentWeight > 0
+                    ? (_currentUnit == 'kg'
+                          ? 'الوزن بالكيلوجرام (kg)'
+                          : 'الوزن بالرطل (lb)')
+                    : _isBluetoothOn
+                    ? 'حالة البلوتوث'
+                    : 'يرجى تشغيل البلوتوث',
                 style: AppStyles.bold18White,
               ),
               const SizedBox(height: 8),
@@ -399,6 +470,36 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
                   ),
                 ),
               ),
+
+              // Helper text when weight is ready
+              if (_currentWeight > 0 && !_isScanning && !_isSending)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    children: [
+                      Text(
+                        'اضغط إرسال وتعالى نعمل خطة الوجبات! ',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 20,
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        '🍽️',
+                        style: TextStyle(
+                          fontSize: 50,
+                          fontFamily: 'Cairo',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_currentWeight > 0 && !_isScanning && !_isSending)
+                const SizedBox(height: 12),
 
               const Spacer(),
 

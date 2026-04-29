@@ -6,7 +6,7 @@ class GetAiMealSuggestions {
 
   GetAiMealSuggestions(this.repository);
 
-  Future<List<Meal>> call(List<String> ingredients, String childId) async {
-    return repository.getAiSuggestions(ingredients, childId);
+  Future<List<Meal>> call(List<String> ingredients, String childId, {List<String> allergies = const []}) async {
+    return repository.getAiSuggestions(ingredients, childId, allergies: allergies);
   }
 }
