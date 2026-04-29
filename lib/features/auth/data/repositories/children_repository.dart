@@ -31,6 +31,16 @@ class ChildrenRepository {
     }
   }
 
+  Future<List<ChildProfile>> getChildrenFresh() async {
+    try {
+      return await _fetchChildrenAndCache();
+    } on DioException catch (e) {
+      throw ApiException(_extractDioMessage(e));
+    } catch (_) {
+      throw ApiException('تعذر تحميل بيانات الأطفال');
+    }
+  }
+
   Future<void> _refreshChildrenCacheSilently() async {
     try {
       await _fetchChildrenAndCache();

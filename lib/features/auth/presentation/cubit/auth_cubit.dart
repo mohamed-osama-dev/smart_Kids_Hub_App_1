@@ -79,6 +79,16 @@ class AuthCubit extends ChangeNotifier {
         refreshToken: refreshToken,
       );
       await SessionService.setLoggedIn(true);
+      final userData = data['user'];
+      final fullName =
+          userData is Map ? userData['fullName']?.toString() ?? '' : '';
+      if (fullName.isNotEmpty) {
+        final existing = await SessionService.getParentInfo();
+        await SessionService.saveParentInfo(
+          fullName: fullName,
+          phone: existing['phone'] ?? '',
+        );
+      }
       sessionToken = null;
       return true;
     } on DioException catch (e) {
@@ -168,6 +178,15 @@ class AuthCubit extends ChangeNotifier {
         refreshToken: refreshToken,
       );
       await SessionService.setLoggedIn(true);
+      final userData = data['user'];
+      final fullName =
+          (userData is Map ? userData['fullName']?.toString() : null) ??
+          data['fullName']?.toString() ??
+          '';
+      await SessionService.saveParentInfo(
+        fullName: fullName,
+        phone: normalizedPhone,
+      );
 
       // Attempt to save childId if returned in login response
       final childIdRaw =
@@ -262,6 +281,7 @@ class AuthCubit extends ChangeNotifier {
       errorMessage = _extractMessage(e);
     } finally {
       await SessionService.clearSession();
+      await SessionService.saveParentInfo(fullName: '', phone: '');
       sessionToken = null;
       isLoading = false;
       notifyListeners();
