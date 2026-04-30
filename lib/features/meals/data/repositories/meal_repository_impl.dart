@@ -8,13 +8,18 @@ class MealRepositoryImpl implements MealRepository {
   MealRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<List<Meal>> getAiSuggestions(
+  Future<Map<int, List<Meal>>> getAiSuggestions(
     List<String> ingredients,
     String childId, {
     List<String> allergies = const [],
   }) async {
-    final mealModels = await remoteDataSource.getAiSuggestions(ingredients, childId, allergies: allergies);
-    return mealModels;
+    final weeklyMeals = await remoteDataSource.getAiSuggestions(ingredients, childId, allergies: allergies);
+    return weeklyMeals;
+  }
+
+  @override
+  Future<Map<int, List<Meal>>> getSavedWeeklyPlan(String childId) async {
+    return await remoteDataSource.getSavedWeeklyPlan(childId);
   }
 
   @override

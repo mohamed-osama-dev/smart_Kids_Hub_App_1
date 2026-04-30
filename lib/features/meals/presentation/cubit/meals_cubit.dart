@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/network/secure_storage_service.dart';
 import '../../domain/entities/entities.dart';
@@ -7,7 +8,7 @@ enum MealsStatus { initial, loading, loaded, error }
 
 class MealsState {
   final MealsStatus status;
-  final List<Meal> meals;
+  final Map<int, List<Meal>> weeklyMeals;
   final List<String> ingredients;
   final List<String> allergies;
   final String? errorMessage;
@@ -15,16 +16,19 @@ class MealsState {
 
   const MealsState({
     this.status = MealsStatus.initial,
-    this.meals = const [],
-    this.ingredients = const ['دجاج', 'أرز', 'طماطم', 'بيض'],
+    this.weeklyMeals = const {},
+    this.ingredients = const [],
     this.allergies = const [],
     this.errorMessage,
     this.selectedDayIndex = 0,
   });
 
+  
+  List<Meal> get meals => weeklyMeals[selectedDayIndex] ?? [];
+
   MealsState copyWith({
     MealsStatus? status,
-    List<Meal>? meals,
+    Map<int, List<Meal>>? weeklyMeals,
     List<String>? ingredients,
     List<String>? allergies,
     String? errorMessage,
@@ -32,7 +36,7 @@ class MealsState {
   }) {
     return MealsState(
       status: status ?? this.status,
-      meals: meals ?? this.meals,
+      weeklyMeals: weeklyMeals ?? this.weeklyMeals,
       ingredients: ingredients ?? this.ingredients,
       allergies: allergies ?? this.allergies,
       errorMessage: errorMessage,
@@ -45,6 +49,7 @@ class MealsCubit extends ChangeNotifier {
   final GetAiMealSuggestions _getAiMealSuggestions;
   final GetMealsByDate _getMealsByDate;
   final ToggleFavoriteMeal _toggleFavoriteMeal;
+  final GetSavedWeeklyPlan _getSavedWeeklyPlan;
 
   MealsState _state = const MealsState();
   MealsState get state => _state;
@@ -53,9 +58,37 @@ class MealsCubit extends ChangeNotifier {
     required GetAiMealSuggestions getAiMealSuggestions,
     required GetMealsByDate getMealsByDate,
     required ToggleFavoriteMeal toggleFavoriteMeal,
+    required GetSavedWeeklyPlan getSavedWeeklyPlan,
   })  : _getAiMealSuggestions = getAiMealSuggestions,
         _getMealsByDate = getMealsByDate,
-        _toggleFavoriteMeal = toggleFavoriteMeal;
+        _toggleFavoriteMeal = toggleFavoriteMeal,
+        _getSavedWeeklyPlan = getSavedWeeklyPlan;
+
+  /// Load saved weekly plan from backend (called when screen opens)
+  Future<void> loadSavedPlan() async {
+    // Don't reload if already loaded
+    if (_state.status == MealsStatus.loaded && _state.weeklyMeals.isNotEmpty) return;
+
+    _state = _state.copyWith(status: MealsStatus.loading, errorMessage: null);
+    notifyListeners();
+
+    try {
+      final childId = await SecureStorageService.getChildId();
+      if (childId == null) return;
+
+      final weeklyMeals = await _getSavedWeeklyPlan(childId.toString());
+      _state = _state.copyWith(
+        status: MealsStatus.loaded,
+        weeklyMeals: weeklyMeals,
+      );
+      notifyListeners();
+    } catch (e) {
+      print('📋 No saved plan found, showing initial state');
+      // No saved plan — show initial state (not error)
+      _state = _state.copyWith(status: MealsStatus.initial);
+      notifyListeners();
+    }
+  }
 
   Future<void> getAiSuggestions() async {
     _state = _state.copyWith(status: MealsStatus.loading, errorMessage: null);
@@ -66,18 +99,38 @@ class MealsCubit extends ChangeNotifier {
       if (childId == null) {
         throw Exception('بيانات الطفل غير متوفرة. يرجى تسجيل الدخول أولاً.');
       }
-      final meals = await _getAiMealSuggestions(
+      final weeklyMeals = await _getAiMealSuggestions(
         _state.ingredients,
         childId.toString(),
         allergies: _state.allergies,
       );
-      _state = _state.copyWith(status: MealsStatus.loaded, meals: meals);
+      _state = _state.copyWith(
+        status: MealsStatus.loaded,
+        weeklyMeals: weeklyMeals,
+      );
       notifyListeners();
     } catch (e) {
       print('❌ AI Suggestions error: $e');
+
+      String errorMessage = 'حدث خطأ أثناء تحميل الاقتراحات. تحقق من الاتصال بالإنترنت.';
+
+      // Extract actual API error message if available
+      if (e is DioException && e.response?.data is Map<String, dynamic>) {
+        final responseData = e.response!.data as Map<String, dynamic>;
+        final apiMessage = responseData['message'] as String?;
+        final errors = responseData['errors'] as List<dynamic>?;
+
+        if (apiMessage != null && apiMessage.isNotEmpty) {
+          errorMessage = apiMessage;
+          if (errors != null && errors.isNotEmpty) {
+            errorMessage += '\n\nجرب إضافة مكونات متنوعة أكثر (مثل: بيض، حليب، خبز، جبنة) لتغطية جميع الوجبات.';
+          }
+        }
+      }
+
       _state = _state.copyWith(
         status: MealsStatus.error,
-        errorMessage: 'حدث خطأ أثناء تحميل الاقتراحات. تحقق من الاتصال بالإنترنت.',
+        errorMessage: errorMessage,
       );
       notifyListeners();
     }
@@ -93,7 +146,10 @@ class MealsCubit extends ChangeNotifier {
         throw Exception('بيانات الطفل غير متوفرة.');
       }
       final meals = await _getMealsByDate(date, childId.toString());
-      _state = _state.copyWith(status: MealsStatus.loaded, meals: meals);
+      // Store in current selected day
+      final updatedWeekly = Map<int, List<Meal>>.from(_state.weeklyMeals);
+      updatedWeekly[_state.selectedDayIndex] = meals;
+      _state = _state.copyWith(status: MealsStatus.loaded, weeklyMeals: updatedWeekly);
       notifyListeners();
     } catch (e) {
       print('❌ getMealsByDate error: $e');
@@ -138,8 +194,9 @@ class MealsCubit extends ChangeNotifier {
 
   Future<void> toggleFavorite(String mealId) async {
     await _toggleFavoriteMeal(mealId);
-    // Optimistically toggle
-    final updatedMeals = _state.meals.map((meal) {
+    // Optimistically toggle in current day
+    final currentDayMeals = _state.meals;
+    final updatedMeals = currentDayMeals.map((meal) {
       if (meal.id == mealId) {
         return Meal(
           id: meal.id,
@@ -156,7 +213,10 @@ class MealsCubit extends ChangeNotifier {
       }
       return meal;
     }).toList();
-    _state = _state.copyWith(meals: updatedMeals);
+
+    final updatedWeekly = Map<int, List<Meal>>.from(_state.weeklyMeals);
+    updatedWeekly[_state.selectedDayIndex] = updatedMeals;
+    _state = _state.copyWith(weeklyMeals: updatedWeekly);
     notifyListeners();
   }
 
@@ -165,3 +225,4 @@ class MealsCubit extends ChangeNotifier {
     notifyListeners();
   }
 }
+

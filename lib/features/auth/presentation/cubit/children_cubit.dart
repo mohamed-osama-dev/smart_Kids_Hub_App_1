@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/services/hive_service.dart';
 import '../../data/repositories/children_repository.dart';
-import '../../domain/models/child.dart';
 import '../../domain/models/child_profile.dart';
 
 enum ChildrenStatus { initial, loading, loaded, error }
@@ -107,8 +106,36 @@ class ChildrenCubit extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addChildAndRefresh(Child child) async {
-    await loadChildren();
+  Future<void> addChildAndRefresh() async {
+    _state = _state.copyWith(
+      status: ChildrenStatus.loading,
+      errorMessage: null,
+    );
+    notifyListeners();
+
+    try {
+      final children = await _repository.getChildrenFresh();
+      _state = _state.copyWith(
+        status: ChildrenStatus.loaded,
+        children: children,
+        activeChildIndex: _normalizeActiveIndex(
+          _state.activeChildIndex,
+          children.length,
+        ),
+        errorMessage: null,
+      );
+    } catch (_) {
+      // Fresh fetch failed — try Hive cache as last resort.
+      final cached = HiveService.getCachedChildren();
+      _state = _state.copyWith(
+        status: cached.isNotEmpty
+            ? ChildrenStatus.loaded
+            : ChildrenStatus.error,
+        children: cached,
+        errorMessage: cached.isEmpty ? 'تعذر تحميل بيانات الأطفال' : null,
+      );
+    }
+    notifyListeners();
   }
 
   int _normalizeActiveIndex(int currentIndex, int length) {

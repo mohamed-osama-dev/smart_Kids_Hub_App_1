@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:provider/provider.dart';
+import 'core/network/dio_client.dart';
 import 'core/services/hive_service.dart';
+import 'core/services/session_service.dart';
 import 'features/auth/domain/models/parent.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/cubit/children_cubit.dart';
@@ -11,6 +15,8 @@ import 'features/meals/data/data.dart';
 import 'features/meals/domain/domain.dart';
 import 'features/meals/presentation/cubit/cubit.dart';
 import 'features/meals/presentation/screens/screens.dart';
+import 'features/settings/presentation/screens/coming_soon_screen.dart';
+import 'features/settings/presentation/screens/settings_screen.dart';
 import 'features/growth/presentation/screens/screens.dart';
 import 'utils/app_colors.dart';
 import 'utils/app_routes.dart';
@@ -37,6 +43,7 @@ class MyApp extends StatelessWidget {
     final getAiMealSuggestions = GetAiMealSuggestions(repository);
     final getMealsByDate = GetMealsByDate(repository);
     final toggleFavoriteMeal = ToggleFavoriteMeal(repository);
+    final getSavedWeeklyPlan = GetSavedWeeklyPlan(repository);
 
     return MultiProvider(
       providers: [
@@ -47,6 +54,7 @@ class MyApp extends StatelessWidget {
             getAiMealSuggestions: getAiMealSuggestions,
             getMealsByDate: getMealsByDate,
             toggleFavoriteMeal: toggleFavoriteMeal,
+            getSavedWeeklyPlan: getSavedWeeklyPlan,
           ),
         ),
       ],
@@ -59,6 +67,13 @@ class MyApp extends StatelessWidget {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.home: (context) => const HomePage(),
           AppRoutes.measurement: (context) => const MeasurementScreen(),
+          AppRoutes.settings: (context) => const SettingsScreen(),
+          AppRoutes.notifications: (context) =>
+              const ComingSoonScreen(title: 'الإشعارات'),
+          AppRoutes.privacy: (context) =>
+              const ComingSoonScreen(title: 'سياسة الخصوصية'),
+          AppRoutes.profile: (context) =>
+              const ComingSoonScreen(title: 'معلومات الحساب'),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.parentInfo: (context) => const ParentInfoScreen(),
           AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
@@ -125,7 +140,7 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _screens = const [
     _HomeTab(),
     MealsScreen(),
-    _GrowthTab(),
+    SettingsScreen(),
   ];
 
   @override
@@ -149,9 +164,9 @@ class _HomePageState extends State<HomePage> {
               label: 'الوجبات',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.trending_up_outlined),
-              activeIcon: Icon(Icons.trending_up),
-              label: 'النمو',
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings),
+              label: 'الإعدادات',
             ),
           ],
         ),
@@ -169,6 +184,7 @@ class _HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<_HomeTab> {
   static const String _addChildMenuValue = 'add-new-child';
+  StreamSubscription<void>? _logoutSub;
 
   @override
   void initState() {
@@ -177,11 +193,27 @@ class _HomeTabState extends State<_HomeTab> {
       if (!mounted) return;
       context.read<ChildrenCubit>().loadChildren();
     });
+    _logoutSub = DioClient.logoutEvents.listen((_) async {
+      await SessionService.clearSession();
+    });
+  }
+
+  @override
+  void dispose() {
+    _logoutSub?.cancel();
+    super.dispose();
   }
 
   void _handleChildMenuSelection(String value) {
     if (value == _addChildMenuValue) {
-      Navigator.of(context).pushNamed(AppRoutes.childInfo);
+      Navigator.of(context).pushNamed(AppRoutes.childInfo).then((_) {
+        if (mounted) {
+          final cubit = context.read<ChildrenCubit>();
+          if (cubit.state.status != ChildrenStatus.loading) {
+            cubit.addChildAndRefresh();
+          }
+        }
+      });
       return;
     }
 
@@ -630,20 +662,4 @@ class _HomeChildSummary {
   final String ageLabel;
 
   const _HomeChildSummary({required this.name, required this.ageLabel});
-}
-
-class _GrowthTab extends StatelessWidget {
-  const _GrowthTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('النمو'),
-      ),
-      body: const Center(
-        child: Text('صفحة النمو - قريباً'),
-      ),
-    );
-  }
 }

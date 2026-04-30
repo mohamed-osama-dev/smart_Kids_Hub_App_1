@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../domain/models/child.dart';
 import '../../domain/models/parent.dart';
 import '../cubit/auth_cubit.dart';
+import '../cubit/children_cubit.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 import '../../../../utils/app_routes.dart';
@@ -73,7 +74,18 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
     ).showSnackBar(const SnackBar(content: Text('تمت الإضافة بنجاح')));
 
     if (navigateHomeOnSuccess) {
-      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+      final childrenCubit = context.read<ChildrenCubit>();
+
+      if (widget.parent == null) {
+        Navigator.of(context).pop();
+        childrenCubit.addChildAndRefresh();
+        return;
+      }
+
+      await Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
+      childrenCubit.addChildAndRefresh();
       return;
     }
 

@@ -141,7 +141,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (deviceName == 'da' ||
             mfgData.containsKey(480) ||
             mfgData.containsKey(208) ||
-            mfgData.keys.any((k) => k & 0xFF == 0xE0 || k & 0xFF == 0xD0)) {
+            mfgData.keys.any((k) => k & 0xFF == 0xE0 || k & 0xFF == 0xD0)){
           print("=== 🔵 BLE Packet Received ===");
           print("Name: $deviceName");
           print("Mfg Data Keys: ${mfgData.keys.toList()}");

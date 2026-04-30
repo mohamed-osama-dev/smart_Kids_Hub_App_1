@@ -4,6 +4,8 @@ import '../network/secure_storage_service.dart';
 
 class SessionService {
   static const String _loggedInKey = 'session_logged_in';
+  static const String _parentFullNameKey = 'parent_full_name';
+  static const String _parentPhoneKey = 'parent_phone';
 
   static Future<void> setLoggedIn(bool value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -29,6 +31,23 @@ class SessionService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loggedInKey, false);
     await SecureStorageService.clearAll();
+  }
+
+  static Future<void> saveParentInfo({
+    required String fullName,
+    required String phone,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_parentFullNameKey, fullName);
+    await prefs.setString(_parentPhoneKey, phone);
+  }
+
+  static Future<Map<String, String?>> getParentInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'fullName': prefs.getString(_parentFullNameKey),
+      'phone': prefs.getString(_parentPhoneKey),
+    };
   }
 }
 
