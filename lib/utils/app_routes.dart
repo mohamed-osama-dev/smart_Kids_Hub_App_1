@@ -10,6 +10,8 @@ class AppRoutes {
   static const String childInfo = '/child-info';
   static const String profile = '/profile';
   static const String settings = '/settings';
+  static const String notifications = '/notifications';
+  static const String privacy = '/privacy';
   static const String meals = '/meals';
   static const String measurement = '/measurement';
 }
