@@ -1,6 +1,6 @@
 {
-    "name": "smart_kids_hub_app",
-    "short_name": "smart_kids_hub_app",
+    "name": "Smart Kids Hub",
+    "short_name": "Smart Kids Hub",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
