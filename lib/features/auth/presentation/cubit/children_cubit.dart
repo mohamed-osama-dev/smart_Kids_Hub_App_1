@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/network/secure_storage_service.dart';
 import '../../../../core/services/hive_service.dart';
 import '../../data/repositories/children_repository.dart';
 import '../../domain/models/child_profile.dart';
@@ -103,6 +104,10 @@ class ChildrenCubit extends ChangeNotifier {
     if (index == _state.activeChildIndex) return;
 
     _state = _state.copyWith(activeChildIndex: index, errorMessage: null);
+    
+    // Save new active child ID to secure storage
+    SecureStorageService.saveChildId(_state.children[index].id);
+    
     notifyListeners();
   }
 

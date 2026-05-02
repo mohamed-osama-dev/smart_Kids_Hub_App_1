@@ -13,6 +13,7 @@ class MealsState {
   final List<String> allergies;
   final String? errorMessage;
   final int selectedDayIndex;
+  final int? currentChildId;
 
   const MealsState({
     this.status = MealsStatus.initial,
@@ -21,6 +22,7 @@ class MealsState {
     this.allergies = const [],
     this.errorMessage,
     this.selectedDayIndex = 0,
+    this.currentChildId,
   });
 
   
@@ -33,6 +35,7 @@ class MealsState {
     List<String>? allergies,
     String? errorMessage,
     int? selectedDayIndex,
+    int? currentChildId,
   }) {
     return MealsState(
       status: status ?? this.status,
@@ -41,6 +44,7 @@ class MealsState {
       allergies: allergies ?? this.allergies,
       errorMessage: errorMessage,
       selectedDayIndex: selectedDayIndex ?? this.selectedDayIndex,
+      currentChildId: currentChildId ?? this.currentChildId,
     );
   }
 }
@@ -66,15 +70,31 @@ class MealsCubit extends ChangeNotifier {
 
   /// Load saved weekly plan from backend (called when screen opens)
   Future<void> loadSavedPlan() async {
-    // Don't reload if already loaded
-    if (_state.status == MealsStatus.loaded && _state.weeklyMeals.isNotEmpty) return;
+    final childId = await SecureStorageService.getChildId();
+    if (childId == null) {
+      _state = _state.copyWith(
+        status: MealsStatus.initial,
+        errorMessage: 'بيانات الطفل غير متوفرة.',
+      );
+      notifyListeners();
+      return;
+    }
 
-    _state = _state.copyWith(status: MealsStatus.loading, errorMessage: null);
+    // Don't reload if already loaded for the same child
+    if (_state.status == MealsStatus.loaded && 
+        _state.weeklyMeals.isNotEmpty &&
+        _state.currentChildId == childId) {
+      return;
+    }
+
+    _state = _state.copyWith(
+      status: MealsStatus.loading, 
+      errorMessage: null,
+      currentChildId: childId,
+    );
     notifyListeners();
 
     try {
-      final childId = await SecureStorageService.getChildId();
-      if (childId == null) return;
 
       final weeklyMeals = await _getSavedWeeklyPlan(childId.toString());
       _state = _state.copyWith(
@@ -107,6 +127,7 @@ class MealsCubit extends ChangeNotifier {
       _state = _state.copyWith(
         status: MealsStatus.loaded,
         weeklyMeals: weeklyMeals,
+        currentChildId: childId,
       );
       notifyListeners();
     } catch (e) {
@@ -126,6 +147,8 @@ class MealsCubit extends ChangeNotifier {
             errorMessage += '\n\nجرب إضافة مكونات متنوعة أكثر (مثل: بيض، حليب، خبز، جبنة) لتغطية جميع الوجبات.';
           }
         }
+      } else if (e.toString().contains('بيانات الطفل غير متوفرة')) {
+        errorMessage = 'بيانات الطفل غير متوفرة. يرجى إضافة بيانات الطفل أولاً.';
       }
 
       _state = _state.copyWith(
@@ -155,7 +178,9 @@ class MealsCubit extends ChangeNotifier {
       print('❌ getMealsByDate error: $e');
       _state = _state.copyWith(
         status: MealsStatus.error,
-        errorMessage: 'حدث خطأ أثناء تحميل الوجبات. تحقق من الاتصال بالإنترنت.',
+        errorMessage: e.toString().contains('بيانات الطفل') 
+            ? 'بيانات الطفل غير متوفرة.'
+            : 'حدث خطأ أثناء تحميل الوجبات. تحقق من الاتصال بالإنترنت.',
       );
       notifyListeners();
     }

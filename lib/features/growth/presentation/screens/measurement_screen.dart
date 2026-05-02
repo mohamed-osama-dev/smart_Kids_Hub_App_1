@@ -44,7 +44,7 @@ class _MeasurementScreenState extends State<MeasurementScreen> {
         if (mounted) {
           setState(() {
             _isSending = false;
-            _statusText = 'بيانات الطفل غير متوفرة. الـ ID مفقود.';
+            _statusText = 'بيانات الطفل غير متوفرة. يرجى إضافة بيانات الطفل أولاً.';
           });
         }
         return;
