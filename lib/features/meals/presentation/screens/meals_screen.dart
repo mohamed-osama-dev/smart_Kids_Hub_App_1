@@ -41,13 +41,10 @@ class _MealsScreenState extends State<MealsScreen> {
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_forward_ios, size: 20),
+        icon: const Icon(Icons.arrow_back_ios, size: 20),
         onPressed: () {
-          // When used inside the tab shell there's nothing to pop,
-          // but keep this for standalone route usage.
-          if (Navigator.of(context).canPop()) {
-            Navigator.of(context).pop();
-          }
+          // Navigate to Home tab (index 0)
+          Navigator.of(context).pushReplacementNamed('/home', arguments: 0);
         },
       ),
       title: Text(
@@ -136,14 +133,7 @@ class _MealsBody extends StatelessWidget {
           ),
         );
       case MealsStatus.loading:
-        return const Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(
-            child: CircularProgressIndicator(
-              color: AppColors.primary,
-            ),
-          ),
-        );
+        return const SizedBox.shrink();
       case MealsStatus.loaded:
         final dayMeals = state.meals;
         if (dayMeals.isEmpty) {

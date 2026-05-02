@@ -5,7 +5,7 @@ class ToggleFavoriteMeal {
 
   ToggleFavoriteMeal(this.repository);
 
-  Future<void> call(String mealId) async {
+  Future<void> call(String mealId) {
     return repository.toggleFavorite(mealId);
   }
 }

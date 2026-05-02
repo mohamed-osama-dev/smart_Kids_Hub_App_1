@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:smart_kids_hub/core/services/hive_service.dart';
 
 class SecureStorageService {
   static const _storage = FlutterSecureStorage();
@@ -26,7 +27,21 @@ class SecureStorageService {
 
   static Future<int?> getChildId() async {
     final value = await _storage.read(key: _childIdKey);
-    return value != null ? int.tryParse(value) : null;
+    if (value != null) {
+      return int.tryParse(value);
+    }
+
+    try {
+      final children = HiveService.getCachedChildren();
+      if (children.isNotEmpty) {
+        final id = children.first.id;
+        if (id > 0) {
+          await saveChildId(id);
+          return id;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   static Future<void> clearTokens() async {
@@ -35,7 +50,6 @@ class SecureStorageService {
   }
 
   static Future<void> clearAll() async {
-    // Single storage operation to clear persisted auth/session state.
     await _storage.deleteAll();
   }
 }
