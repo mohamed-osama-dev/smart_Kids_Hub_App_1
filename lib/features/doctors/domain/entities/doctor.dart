@@ -8,7 +8,7 @@ class Doctor {
   final int experienceYears;
   final String address;
   final String phone;
-  final String? avatarUrl;
+  final String? avatarPath;
 
   const Doctor({
     required this.id,
@@ -20,6 +20,6 @@ class Doctor {
     required this.experienceYears,
     required this.address,
     required this.phone,
-    this.avatarUrl,
+    this.avatarPath,
   });
 }

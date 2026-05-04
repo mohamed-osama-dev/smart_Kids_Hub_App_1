@@ -190,7 +190,6 @@ class _DoctorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final specialtyColor = _specialtyColor(doctor.specialtyKey);
-    final avatarUrl = doctor.avatarUrl;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -284,10 +283,10 @@ class _DoctorCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: AppColors.primaryLighter,
-                  child: avatarUrl != null && avatarUrl.isNotEmpty
+                  child: doctor.avatarPath != null
                       ? ClipOval(
-                          child: Image.network(
-                            avatarUrl,
+                          child: Image.asset(
+                            doctor.avatarPath!,
                             width: 64,
                             height: 64,
                             fit: BoxFit.cover,

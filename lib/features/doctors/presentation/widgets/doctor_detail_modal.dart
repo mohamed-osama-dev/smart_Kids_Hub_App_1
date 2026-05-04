@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
@@ -21,8 +22,6 @@ class DoctorDetailModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasAvatar = doctor.avatarUrl != null && doctor.avatarUrl!.isNotEmpty;
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Container(
@@ -71,9 +70,9 @@ class DoctorDetailModal extends StatelessWidget {
                       border: Border.all(color: Colors.white, width: 3),
                     ),
                     child: ClipOval(
-                      child: hasAvatar
-                          ? Image.network(
-                              doctor.avatarUrl!,
+                      child: doctor.avatarPath != null
+                          ? Image.asset(
+                              doctor.avatarPath!,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Icon(
                                 Icons.medical_services,
@@ -176,12 +175,32 @@ class DoctorDetailModal extends StatelessWidget {
     );
   }
 
-  void _launchPhone(BuildContext context, String phone) {
-    _showPhoneFallback(context, phone);
+  Future<void> _launchPhone(BuildContext context, String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر فتح تطبيق الاتصال: $phone')),
+        );
+      }
+    }
   }
 
-  void _launchWhatsApp(BuildContext context, String phone) {
-    _showPhoneFallback(context, phone);
+  Future<void> _launchWhatsApp(BuildContext context, String phone) async {
+    // Remove + and spaces, keep digits only
+    final digits = phone.replaceAll(RegExp(r'[^\d]'), '');
+    final uri = Uri.parse('https://wa.me/$digits');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر فتح واتساب')),
+        );
+      }
+    }
   }
 
   void _showPhoneFallback(BuildContext context, String phone) {

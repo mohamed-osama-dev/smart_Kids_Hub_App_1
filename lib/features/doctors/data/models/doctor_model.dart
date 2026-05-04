@@ -11,7 +11,7 @@ class DoctorModel extends Doctor {
     required super.experienceYears,
     required super.address,
     required super.phone,
-    super.avatarUrl,
+    super.avatarPath,
   });
 
   factory DoctorModel.fromJson(Map<String, dynamic> json) {
@@ -25,7 +25,7 @@ class DoctorModel extends Doctor {
       experienceYears: _asInt(json['experienceYears']),
       address: json['address']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
-      avatarUrl: json['avatarUrl']?.toString(),
+      avatarPath: json['avatarPath']?.toString(),
     );
   }
 
@@ -52,39 +52,43 @@ class DoctorModel extends Doctor {
       experienceYears: 15,
       address: 'شارع الحجان المهندسين، الجيزة',
       phone: '+201001234567',
+      avatarPath: 'assets/doctor1.png',
     ),
     DoctorModel(
       id: 2,
-      name: 'د. سارة عبد الله',
-      specialty: 'أخصائية تغذية الأطفال',
+      name: 'د. محمد عبد الله',
+      specialty: 'أخصائي تغذية الأطفال',
       specialtyKey: 'nutrition',
       rating: 4.8,
       reviewsCount: 189,
       experienceYears: 10,
       address: 'شارع التحرير، القاهرة',
       phone: '+201009876543',
+      avatarPath: 'assets/doctor2.png',
     ),
     DoctorModel(
       id: 3,
       name: 'د. خالد إبراهيم',
-      specialty: 'استشاري مع وأعصاب أطفال',
+      specialty: 'استشاري أعصاب أطفال',
       specialtyKey: 'neurology',
       rating: 4.9,
       reviewsCount: 312,
       experienceYears: 20,
       address: 'شارع النيل، الجيزة',
       phone: '+201112223344',
+      avatarPath: 'assets/doctor3.png',
     ),
     DoctorModel(
       id: 4,
-      name: 'د. منى حسن',
-      specialty: 'استشارية طب الأطفال',
+      name: 'د. كريم حسن',
+      specialty: 'استشاري طب الأطفال',
       specialtyKey: 'general',
       rating: 4.7,
       reviewsCount: 156,
       experienceYears: 12,
       address: 'مدينة نصر، القاهرة',
       phone: '+201223344556',
+      avatarPath: 'assets/doctor4.png',
     ),
     DoctorModel(
       id: 5,
@@ -96,17 +100,19 @@ class DoctorModel extends Doctor {
       experienceYears: 8,
       address: 'المعادي، القاهرة',
       phone: '+201334455667',
+      avatarPath: 'assets/doctor5.png',
     ),
     DoctorModel(
       id: 6,
-      name: 'د. ليلى فاروق',
-      specialty: 'أخصائية أسنان أطفال',
+      name: 'د. يوسف فاروق',
+      specialty: 'أخصائي أسنان أطفال',
       specialtyKey: 'dental',
       rating: 4.9,
       reviewsCount: 421,
       experienceYears: 14,
       address: 'الزمالك، القاهرة',
       phone: '+201445566778',
+      avatarPath: 'assets/doctor6.png',
     ),
   ];
 }
