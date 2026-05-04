@@ -11,6 +11,11 @@ import 'features/auth/domain/models/parent.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/cubit/children_cubit.dart';
 import 'features/auth/presentation/screens/screens.dart';
+import 'features/account/presentation/screens/account_screen.dart';
+import 'features/doctors/data/repositories/doctor_repository_impl.dart';
+import 'features/doctors/domain/usecases/get_doctors.dart';
+import 'features/doctors/presentation/cubit/doctors_cubit.dart';
+import 'features/doctors/presentation/screens/doctors_screen.dart';
 import 'features/meals/data/data.dart';
 import 'features/meals/domain/domain.dart';
 import 'features/meals/presentation/cubit/cubit.dart';
@@ -49,6 +54,11 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthCubit()),
         ChangeNotifierProvider(create: (_) => ChildrenCubit()),
+        ChangeNotifierProvider(
+          create: (_) => DoctorsCubit(
+            getDoctors: GetDoctors(DoctorRepositoryImpl(useMock: true)),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => MealsCubit(
             getAiMealSuggestions: getAiMealSuggestions,
@@ -131,7 +141,7 @@ class _HomePageState extends State<HomePage> {
     if (!_didReadArgs) {
       _didReadArgs = true;
       final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is int && args >= 0 && args < 3) {
+      if (args is int && args >= 0 && args < 4) {
         _currentIndex = args;
       }
     }
@@ -140,7 +150,8 @@ class _HomePageState extends State<HomePage> {
   final List<Widget> _screens = const [
     _HomeTab(),
     MealsScreen(),
-    SettingsScreen(),
+    DoctorsScreen(),
+    AccountScreen(),
   ];
 
   @override
@@ -164,9 +175,14 @@ class _HomePageState extends State<HomePage> {
               label: 'الوجبات',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
-              label: 'الإعدادات',
+              icon: Icon(Icons.medical_services_outlined),
+              activeIcon: Icon(Icons.medical_services),
+              label: 'الأطباء',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'حسابي',
             ),
           ],
         ),
