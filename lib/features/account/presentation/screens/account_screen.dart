@@ -54,7 +54,7 @@ class _AccountScreenState extends State<AccountScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 40, 16, 12),
               child: Center(
                 child: Text('حسابي', style: AppStyles.bold20Black),
               ),
