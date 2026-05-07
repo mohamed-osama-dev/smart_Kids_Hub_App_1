@@ -52,14 +52,7 @@ class _MealsScreenState extends State<MealsScreen> {
         style: AppStyles.bold20Black,
       ),
       centerTitle: true,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.calendar_today, size: 22),
-          onPressed: () {
-            // TODO: Open calendar
-          },
-        ),
-      ],
+
     );
   }
 }

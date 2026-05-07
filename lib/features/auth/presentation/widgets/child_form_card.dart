@@ -52,8 +52,8 @@ class _ChildFormCardState extends State<ChildFormCard> {
         'MM/dd/yyyy',
       ).format(widget.child.birthDate);
     }
-    _heightController.text = widget.child.height?.toString() ?? '';
-    _weightController.text = widget.child.weight?.toString() ?? '';
+    _heightController.text = widget.child.height != null ? widget.child.height!.toInt().toString() : '';
+    _weightController.text = widget.child.weight != null ? widget.child.weight!.toInt().toString() : '';
     _notesController.text = widget.child.additionalNotes;
   }
 
@@ -69,11 +69,13 @@ class _ChildFormCardState extends State<ChildFormCard> {
     if (_birthDateController.text != birthDateText) {
       _birthDateController.text = birthDateText;
     }
-    if (widget.child.height?.toString() != _heightController.text) {
-      _heightController.text = widget.child.height?.toString() ?? '';
+    final heightText = widget.child.height != null ? widget.child.height!.toInt().toString() : '';
+    if (_heightController.text != heightText) {
+      _heightController.text = heightText;
     }
-    if (widget.child.weight?.toString() != _weightController.text) {
-      _weightController.text = widget.child.weight?.toString() ?? '';
+    final weightText = widget.child.weight != null ? widget.child.weight!.toInt().toString() : '';
+    if (_weightController.text != weightText) {
+      _weightController.text = weightText;
     }
     if (widget.child.additionalNotes != _notesController.text) {
       _notesController.text = widget.child.additionalNotes;
@@ -289,16 +291,16 @@ class _ChildFormCardState extends State<ChildFormCard> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _heightController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: '0.0',
+                    hintText: '0',
                     prefixIcon: const Icon(Icons.straighten, size: 20),
                   ),
                   onChanged: (value) {
                     final height = double.tryParse(value);
-                    _updateChild(height: height);
+                    if (height != null) {
+                      _updateChild(height: height);
+                    }
                   },
                 ),
                 const SizedBox(height: 4),
@@ -309,11 +311,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _weightController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: '0.0',
+                    hintText: '0',
                     prefixIcon: const Icon(
                       Icons.monitor_weight_outlined,
                       size: 20,
@@ -321,7 +321,9 @@ class _ChildFormCardState extends State<ChildFormCard> {
                   ),
                   onChanged: (value) {
                     final weight = double.tryParse(value);
-                    _updateChild(weight: weight);
+                    if (weight != null) {
+                      _updateChild(weight: weight);
+                    }
                   },
                 ),
                 const SizedBox(height: 24),

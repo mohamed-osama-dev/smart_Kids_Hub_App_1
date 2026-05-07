@@ -55,46 +55,12 @@ class _DoctorsScreenState extends State<DoctorsScreen>
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+              padding: const EdgeInsets.fromLTRB(16, 40, 16, 12),
               child: Center(
                 child: Text('الأطباء', style: AppStyles.bold20Black),
               ),
             ),
-            SizedBox(
-              height: 48,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: specialties.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final specialty = specialties[index];
-                  final isSelected =
-                      state.selectedSpecialtyKey == specialty.key;
-                  return ChoiceChip(
-                    label: Text(
-                      '${specialty.emoji} ${specialty.label}',
-                      style: AppStyles.bold14Primary.copyWith(
-                        color: isSelected
-                            ? AppColors.whiteColor
-                            : AppColors.primary,
-                      ),
-                    ),
-                    selected: isSelected,
-                    showCheckmark: false,
-                    backgroundColor: AppColors.primaryLighter,
-                    selectedColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.primary),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    onSelected: (_) => context
-                        .read<DoctorsCubit>()
-                        .filterBySpecialty(specialty.key),
-                  );
-                },
-              ),
-            ),
+
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Align(
