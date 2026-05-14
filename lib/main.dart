@@ -134,6 +134,18 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _didReadArgs = false;
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = const [
+      _HomeTab(),
+      MealsScreen(),
+      DoctorsScreen(),
+      AccountScreen(),
+    ];
+  }
 
   @override
   void didChangeDependencies() {
@@ -146,13 +158,6 @@ class _HomePageState extends State<HomePage> {
       }
     }
   }
-
-  final List<Widget> _screens = const [
-    _HomeTab(),
-    MealsScreen(),
-    DoctorsScreen(),
-    AccountScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {

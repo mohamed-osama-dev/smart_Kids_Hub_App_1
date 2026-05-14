@@ -35,7 +35,8 @@ class _ChildInfoScreenState extends State<ChildInfoScreen> {
       birthDate: DateTime(1900, 1, 1),
       gender: Gender.male,
       height: null,
-      weight: null,
+      // TODO: remove default weight after testing.
+      weight: 20.0,
       healthConditions: const [],
       hasNoChronicDiseases: false,
     );

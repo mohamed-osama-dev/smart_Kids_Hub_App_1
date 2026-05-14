@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/app_colors.dart';
 import '../utils/app_styles.dart';
 
 class CustomElevatedButton extends StatelessWidget {
@@ -10,6 +11,8 @@ class CustomElevatedButton extends StatelessWidget {
   final Widget? iconWidget;
   final MainAxisAlignment? mainAxisAlignment;
   final bool? hasIcon;
+  final Color? textColor;
+  final TextStyle? textStyle;
   const CustomElevatedButton({
     super.key,
     required this.onPressed,
@@ -19,19 +22,17 @@ class CustomElevatedButton extends StatelessWidget {
     this.mainAxisAlignment = MainAxisAlignment.center,
     this.hasIcon = false,
     this.iconWidget,
+    this.textColor,
+    this.textStyle,
   });
 
   @override
   Widget build(BuildContext context) {
-    var heightScr = MediaQuery.sizeOf(context).height;
-    var widthScr = MediaQuery.sizeOf(context).width;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
-        minimumSize: Size(widthScr, heightScr * .02),
-
-        // side: BorderSide(width: widthScr),
-        padding: EdgeInsets.symmetric(vertical: heightScr * .02),
+        minimumSize: const Size(double.infinity, 52),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadiusGeometry.circular(16),
 
@@ -44,7 +45,12 @@ class CustomElevatedButton extends StatelessWidget {
         children: [
           if (hasIcon!) iconWidget ?? SizedBox(),
 
-          Text(text, style: AppStyles.bold20White),
+          Text(
+            text,
+            style: (textStyle ?? AppStyles.bold20White).copyWith(
+              color: textColor ?? AppColors.whiteColor,
+            ),
+          ),
         ],
       ),
     );

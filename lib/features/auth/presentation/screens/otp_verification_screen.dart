@@ -38,14 +38,23 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   @override
   void initState() {
     super.initState();
+    _otpController.addListener(_onOtpChanged);
     _startTimer();
   }
 
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _otpController.removeListener(_onOtpChanged);
     _otpController.dispose();
     super.dispose();
+  }
+
+  void _onOtpChanged() {
+    final String cleanOtp = _otpController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleanOtp.length == 6 && !_isVerifying) {
+      _handleVerify();
+    }
   }
 
   String _formatPhoneForDisplay(String phone) {
@@ -87,32 +96,37 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       RegExp(r'[^0-9]'),
       '',
     );
-    if (cleanOtp.length == 6) {
-      setState(() => _isVerifying = true);
-      final cubit = context.read<AuthCubit>();
-      final success = await cubit.verifyOtp(
-        verifyCode: cleanOtp,
-        isPasswordReset: widget.isPasswordReset,
+    if (cleanOtp.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى إدخال رمز التحقق كاملاً (6 أرقام)')),
       );
-      if (!mounted) return;
-      setState(() => _isVerifying = false);
-      if (success) {
-        if (widget.isPasswordReset) {
-          Navigator.of(context).pushNamed(AppRoutes.setNewPassword);
-        } else if (widget.parent != null) {
-          Navigator.of(
-            context,
-          ).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
-        } else {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
-        }
+      return;
+    }
+
+    setState(() => _isVerifying = true);
+    final cubit = context.read<AuthCubit>();
+    final success = await cubit.verifyOtp(
+      verifyCode: cleanOtp,
+      isPasswordReset: widget.isPasswordReset,
+    );
+    if (!mounted) return;
+    setState(() => _isVerifying = false);
+    if (success) {
+      if (widget.isPasswordReset) {
+        Navigator.of(context).pushNamed(AppRoutes.setNewPassword);
+      } else if (widget.parent != null) {
+        Navigator.of(
+          context,
+        ).pushNamed(AppRoutes.childInfo, arguments: widget.parent);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(cubit.errorMessage ?? 'رمز التحقق غير صحيح')),
-        );
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.home, (route) => false);
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(cubit.errorMessage ?? 'رمز التحقق غير صحيح')),
+      );
     }
   }
 

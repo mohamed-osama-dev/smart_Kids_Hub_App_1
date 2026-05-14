@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_styles.dart';
 
@@ -15,21 +14,34 @@ class WeekDaySelector extends StatelessWidget {
 
   List<Map<String, String>> _getWeekDays() {
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday % 7 + 1));
+    // weekday: Mon=1...Sun=7. We want Saturday=0 index.
+    // Saturday in Dart weekday = 6
+    // Days since last Saturday:
+    final daysSinceSaturday = (now.weekday + 1) % 7; // Sat=0,Sun=1,...,Fri=6
+    final startOfWeek = now.subtract(Duration(days: daysSinceSaturday));
+    final dayNames = [
+      'السبت',
+      'الأحد',
+      'الإثنين',
+      'الثلاثاء',
+      'الأربعاء',
+      'الخميس',
+      'الجمعة',
+    ];
     final days = <Map<String, String>>[];
-    final dayNames = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
 
     for (int i = 0; i < 7; i++) {
       final date = startOfWeek.add(Duration(days: i));
-      final dayName = dayNames[i];
-      final dayNum = DateFormat('d').format(date);
-      days.add({'name': dayName, 'day': dayNum, 'isToday': 'false'});
-    }
-
-    // Mark today
-    final todayIdx = now.weekday % 7 + 1;
-    if (todayIdx < days.length) {
-      days[todayIdx] = Map<String, String>.from(days[todayIdx])..['isToday'] = 'true';
+      days.add({
+        'name': dayNames[i],
+        'day': date.day.toString(),
+        'isToday':
+            (date.year == now.year &&
+                    date.month == now.month &&
+                    date.day == now.day)
+                ? 'true'
+                : 'false',
+      });
     }
 
     return days;

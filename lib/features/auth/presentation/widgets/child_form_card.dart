@@ -313,7 +313,7 @@ class _ChildFormCardState extends State<ChildFormCard> {
                   controller: _weightController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    hintText: '0',
+                    hintText: 'مثال: 20 كجم',
                     prefixIcon: const Icon(
                       Icons.monitor_weight_outlined,
                       size: 20,
