@@ -4,11 +4,13 @@ import '../../../../utils/app_colors.dart';
 class StepProgressIndicator extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
+  final VoidCallback? onBack;
 
   const StepProgressIndicator({
     super.key,
     required this.currentStep,
     required this.totalSteps,
+    this.onBack,
   });
 
   @override
@@ -18,10 +20,21 @@ class StepProgressIndicator extends StatelessWidget {
       child: Row(
         children: [
           // Back arrow
-          const Icon(
-            Icons.arrow_forward_ios,
-            size: 20,
-            color: AppColors.textSecondary,
+          GestureDetector(
+            onTap: onBack ?? () => Navigator.of(context).pop(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLighter,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           const SizedBox(width: 16),
           // Progress bar

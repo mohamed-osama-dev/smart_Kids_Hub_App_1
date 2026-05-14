@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -29,15 +31,62 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   final TextEditingController _otpController = TextEditingController();
 
   bool _isVerifying = false;
+  int _secondsRemaining = 60;
+  bool _canResend = false;
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _otpController.dispose();
     super.dispose();
   }
 
+  String _formatPhoneForDisplay(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('20') && digits.length == 12) {
+      return '0${digits.substring(2)}';
+    }
+    if (digits.length == 10) {
+      return '0$digits';
+    }
+    if (digits.length == 11 && digits.startsWith('0')) {
+      return digits;
+    }
+    return phone;
+  }
+
+  void _startTimer() {
+    _secondsRemaining = 60;
+    _canResend = false;
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_secondsRemaining > 0) {
+          _secondsRemaining--;
+        } else {
+          _canResend = true;
+          timer.cancel();
+        }
+      });
+    });
+  }
+
   void _handleVerify() async {
-    final String cleanOtp = _otpController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    final String cleanOtp = _otpController.text.replaceAll(
+      RegExp(r'[^0-9]'),
+      '',
+    );
     if (cleanOtp.length == 6) {
       setState(() => _isVerifying = true);
       final cubit = context.read<AuthCubit>();
@@ -67,7 +116,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     }
   }
 
-  void _handleResendOTP() async {
+  Future<void> _handleResendOTP() async {
     final cubit = context.read<AuthCubit>();
     final success = await cubit.resendCode();
     if (!mounted) return;
@@ -144,7 +193,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            widget.phoneNumber,
+                            _formatPhoneForDisplay(widget.phoneNumber),
                             style: AppStyles.bold16Primary,
                           ),
                         ),
@@ -224,7 +273,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                               final isBusy = _isVerifying || cubit.isLoading;
                               return CustomElevatedButton(
                                 onPressed: isBusy ? () {} : _handleVerify,
-                                text: isBusy ? 'جاري التحقق...' : 'تحقق من الرمز',
+                                text: isBusy
+                                    ? 'جاري التحقق...'
+                                    : 'تحقق من الرمز',
                                 backgroundColor: isBusy
                                     ? AppColors.textHint
                                     : AppColors.primary,
@@ -236,17 +287,23 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         if (!isKeyboardVisible) ...[
                           const Spacer(),
                           // Timer
-                          Text(
-                            'انتهي الرمز خلال: 01:50',
-                            style: AppStyles.regular14Grey.copyWith(
-                              color: AppColors.accent,
+                          if (!_canResend)
+                            Text(
+                              'انتهي الرمز خلال: ${_secondsRemaining ~/ 60}:${(_secondsRemaining % 60).toString().padLeft(2, '0')}',
+                              style: AppStyles.regular14Grey.copyWith(
+                                color: AppColors.accent,
+                              ),
                             ),
-                          ),
                           SizedBox(height: 16),
                           Consumer<AuthCubit>(
                             builder: (context, cubit, _) {
                               return TextButton(
-                                onPressed: cubit.isLoading ? null : _handleResendOTP,
+                                onPressed: (_canResend && !cubit.isLoading)
+                                    ? () async {
+                                        await _handleResendOTP();
+                                        _startTimer();
+                                      }
+                                    : null,
                                 style: TextButton.styleFrom(
                                   minimumSize: const Size(0, 44),
                                 ),
@@ -254,7 +311,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                   cubit.isLoading
                                       ? 'جاري إعادة الإرسال...'
                                       : 'لم تستقبل الرمز؟ إعادة إرسال',
-                                  style: AppStyles.semi14Primary,
+                                  style: _canResend
+                                      ? AppStyles.semi14Primary
+                                      : AppStyles.semi14Primary.copyWith(
+                                          color: AppColors.textHint,
+                                        ),
                                 ),
                               );
                             },
